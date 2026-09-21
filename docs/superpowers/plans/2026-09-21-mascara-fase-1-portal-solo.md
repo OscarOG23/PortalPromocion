@@ -17,7 +17,7 @@
 1. **Contraseña deducible `usuario + '26'`, igual que Determinantes.** Decisión explícita del usuario (2026-09-21), tomada sabiendo que la página es pública en GitHub Pages: ya no existe la barrera de «no publicar la URL». Cualquiera que conozca el nombre de una coordinación y encuentre la página puede entrar como ella a todos sus capturadores. Esto se deja escrito en el código (`Usuarios.gs`) y en el README. Si algún día se endurece, se cambia `contrasenaDeUsuario`, se corre `crearCuentasDeCoordinaciones()` y se reparten las nuevas: nada más depende de eso.
 2. **La sesión del portal ES un boleto, sin estado en el servidor.** Determinantes guarda el testigo en caché + propiedades; aquí basta la firma: `iniciarSesion` emite un boleto para el destino `portal` con vida de 30 días, y cada llamada lo verifica. Consecuencias:
    - «Salir» borra el boleto del teléfono; el servidor no guarda nada que borrar.
-   - Para dejar fuera a una cuenta **sin esperar 30 días**: poner `activo = FALSE` en `USUARIOS` (se comprueba en cada llamada), o rotar el secreto (`generarSecretoDeBoletos(true)`), que corta a todas.
+   - Para dejar fuera a una cuenta **sin esperar 30 días**: poner `activo = FALSE` en `USUARIOS` (se comprueba en cada llamada, pero contra la caché de 30 min de `leerCatalogo`; al instante con `invalidarCatalogo('USUARIOS')`), o rotar el secreto (`generarSecretoDeBoletos(true)`), que corta a todas.
 3. **Cada destino recibe su propio boleto de 8 horas**, marcado con su `destino_id`. El de 30 días nunca sale del portal: el de un destino viaja en la URL y queda en historiales. Un boleto de SIPS no abre Determinantes.
 4. **Formato del boleto** (lo tendrán que verificar los hermanos en la Fase 2, así que es contrato):
    `base64url(JSON {c, u, d, v}) + '.' + base64url(HMAC-SHA256(cuerpo, secreto))`, sin relleno `=`.
@@ -1227,12 +1227,12 @@ git commit -m "feat: API por doPost con despacho seguro y contexto de destinos"
 - Create (sin versionar): `.clasp.json`
 
 **Acceptance Criteria:**
-- [ ] `node tools/run-tests.js` sigue en `47 pruebas, 0 fallas` (nada de lo nuevo rompe la carga)
+- [ ] `node tools/run-tests.js` sigue en `52 pruebas, 0 fallas` (nada de lo nuevo rompe la carga)
 - [ ] En el editor: `setupDatabase()` crea `CONFIG`, `CAT_COORDINACIONES`, `CAT_UNIDADES`, `USUARIOS`, `DESTINOS`, `AUDITORIA`
 - [ ] `verificarCatalogos()` registra `22 coordinaciones`, `69 unidades`, `0 unidades huérfanas`
 - [ ] `crearCuentasDeCoordinaciones()` registra `22 cuentas creadas`
 - [ ] `generarSecretoDeBoletos()` crea `SECRETO_BOLETOS`; correrla otra vez **no** lo cambia
-- [ ] `runAllTests()` corrido en el editor da `47 pruebas, 0 fallas` (confirma que el `Utilities` real coincide con el shim)
+- [ ] `runAllTests()` corrido en el editor da `52 pruebas, 0 fallas` (confirma que el `Utilities` real coincide con el shim)
 
 **Verify:** los registros de ejecución del editor de Apps Script, uno por función, con los textos de arriba.
 
@@ -1456,7 +1456,7 @@ function verificarDestinos() {
 - [ ] **Step 4: Confirmar que Node sigue verde**
 
 Run: `node tools/run-tests.js`
-Expected: `47 pruebas, 0 fallas`
+Expected: `52 pruebas, 0 fallas`
 
 - [ ] **Step 5: Crear el proyecto de Apps Script con su hoja**
 
@@ -1483,7 +1483,7 @@ Ojo con el orden de carga: `Setup.gs` usa `HOJAS` a nivel global (en `ESQUEMA`),
 3. `verificarCatalogos` → `22 coordinaciones`, `69 unidades`, `0 unidades huérfanas`
 4. `crearCuentasDeCoordinaciones` → `22 cuentas creadas`
 5. `generarSecretoDeBoletos` → `SECRETO_BOLETOS creado`; ejecutarla de nuevo → `ya existe; no se cambió`
-6. `runAllTests` → `47 pruebas, 0 fallas`
+6. `runAllTests` → `52 pruebas, 0 fallas`
 
 Si el 6 falla en pruebas de boleto o huella pero Node pasa, el shim de `tools/run-tests.js` no coincide con el `Utilities` real: corregir el shim, no las pruebas.
 
@@ -1915,8 +1915,11 @@ Una fila en `DESTINOS` y luego `verificarDestinos()` en el editor. No se toca c�
 - **La contraseña es deducible** (`usuario` + `26`) por decisión explícita, y esta página es **pública**.
   Quien sepa el nombre de una coordinación puede entrar como ella a todos sus capturadores.
   Para endurecerla: cambiar `contrasenaDeUsuario` en `src/Usuarios.gs` y correr `crearCuentasDeCoordinaciones()`.
-- **La sesión dura 30 días y vive en el teléfono.** Para cortar una cuenta ya: `activo = FALSE` en `USUARIOS`.
+- **La sesión dura 30 días y vive en el teléfono.** Para cortar una cuenta: `activo = FALSE` en `USUARIOS`
+  (surte efecto al vencer la caché de 30 min, o al instante con `invalidarCatalogo('USUARIOS')` en el editor).
   Para cortar a todas: `generarSecretoDeBoletos(true)`.
+- **El bloqueo por intentos se puede usar para molestar.** Con la contraseña deducible, forzarla no le sirve a nadie;
+  lo que sí se puede es teclear 5 contraseñas malas con el usuario de otra coordinación y dejarla fuera 15 minutos.
 
 ## Secreto de boletos
 
@@ -1965,6 +1968,6 @@ Si algún paso falla, **no** se marca la tarea como hecha: se abre la causa con 
 
 - **Fase 2 — Determinantes acepta el boleto:** copiar `Boleto.gs` y el secreto; `doGet(e)` con `e.parameter.boleto` → verificar con `destino = 'determinantes'` → resolver la cuenta **contra su propia hoja `USUARIOS`** por `coordinacion_id`; retirar su pantalla de acceso; mover su pantalla a Pages (mismo defecto de Android). Resolver cómo entra su administrador (el portal no tiene cuenta de administrador). Que lea el catálogo desde la hoja del portal.
 - **Fase 3 — Mensual Coordinación**, igual. Antes: reconciliar su `CATALOGO_COORDINACIONES` con las 22 (spec §11).
-- **Fase 4 — SIPS, SSOP, Entornos** leen `boleto` y su parámetro de coordinación.
+- **Fase 4 — SIPS, SSOP, Entornos** leen `boleto` y su parámetro de coordinación. **Contrato:** la identidad se toma del campo `c` del boleto verificado, nunca del parámetro de coordinación en claro (ese se puede editar a mano en la URL; solo sirve para preseleccionar mientras el hermano no verifica boletos). Al copiar `Boleto.gs`, conservar la exigencia de que `c` y `u` sean cadenas.
 - **Fase 5 — Sondas:** registrar funciones en `SONDAS` (`Destinos.gs`), una por destino.
 - **Pendientes de la spec §11:** estado de JORNADA SALUD y VISOR-JORNADAS; qué queda vivo del inventario de 14 formularios; los `entry.<id>` de cada uno.
