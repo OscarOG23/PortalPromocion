@@ -46,5 +46,65 @@ function registrarPruebas() {
     assertIgual(contrasenaDeUsuario('chiautla'), 'chiautla26');
   });
 
+  // --- Boleto -------------------------------------------------------------
+
+  var SECRETO = 'secreto-de-prueba';
+  var AHORA = 1790000000000;
+  var LUEGO = AHORA + 3600000;
+
+  prueba('boleto: ida y vuelta, con caracteres no ASCII', function () {
+    var b = emitirBoleto('ñandú', 'COOR07', 'sips', LUEGO, SECRETO);
+    assertIgual(/^[A-Za-z0-9_.-]+$/.test(b), true, 'seguro para URL');
+    assertIgual(verificarBoleto(b, SECRETO, 'sips', AHORA),
+                { ok: true, coordinacion_id: 'COOR07', usuario: 'ñandú',
+                  destino: 'sips', vence: LUEGO });
+  });
+
+  prueba('boleto: otro secreto no lo abre', function () {
+    var b = emitirBoleto('chiautla', 'COOR01', 'portal', LUEGO, SECRETO);
+    assertIgual(verificarBoleto(b, 'otro', 'portal', AHORA).code, 'BOLETO_INVALIDO');
+  });
+
+  prueba('boleto: cambiar la coordinación invalida la firma', function () {
+    var b = emitirBoleto('chiautla', 'COOR01', 'portal', LUEGO, SECRETO);
+    var falso = _b64(JSON.stringify({ c: 'COOR02', u: 'chiautla', d: 'portal', v: LUEGO }));
+    assertIgual(verificarBoleto(falso + '.' + b.split('.')[1], SECRETO, 'portal', AHORA).code,
+                'BOLETO_INVALIDO');
+  });
+
+  prueba('boleto: vencido', function () {
+    var b = emitirBoleto('chiautla', 'COOR01', 'portal', AHORA, SECRETO);
+    assertIgual(verificarBoleto(b, SECRETO, 'portal', AHORA).code, 'BOLETO_VENCIDO');
+  });
+
+  prueba('boleto: vencido y alterado es inválido, no vencido', function () {
+    var b = emitirBoleto('chiautla', 'COOR01', 'portal', AHORA - 1, SECRETO);
+    var falso = _b64(JSON.stringify({ c: 'COOR02', u: 'chiautla', d: 'portal', v: AHORA - 1 }));
+    assertIgual(verificarBoleto(falso + '.' + b.split('.')[1], SECRETO, 'portal', AHORA).code,
+                'BOLETO_INVALIDO');
+  });
+
+  prueba('boleto: el de un destino no abre otro', function () {
+    var b = emitirBoleto('chiautla', 'COOR01', 'sips', LUEGO, SECRETO);
+    assertIgual(verificarBoleto(b, SECRETO, 'determinantes', AHORA).code, 'BOLETO_INVALIDO');
+  });
+
+  prueba('boleto: basura es inválida y no lanza', function () {
+    assertIgual(['', null, undefined, 'abc', 'a.b.c', '.', 'e30.xxx'].map(function (b) {
+      return verificarBoleto(b, SECRETO, 'portal', AHORA).code;
+    }), ['BOLETO_INVALIDO', 'BOLETO_INVALIDO', 'BOLETO_INVALIDO', 'BOLETO_INVALIDO',
+         'BOLETO_INVALIDO', 'BOLETO_INVALIDO', 'BOLETO_INVALIDO']);
+  });
+
+  prueba('boleto: sin secreto no se emite', function () {
+    assertLanza(function () { emitirBoleto('chiautla', 'COOR01', 'portal', LUEGO, ''); },
+                'SIN_SECRETO');
+  });
+
+  prueba('boleto: sin secreto no se verifica', function () {
+    var b = emitirBoleto('chiautla', 'COOR01', 'portal', LUEGO, SECRETO);
+    assertIgual(verificarBoleto(b, '', 'portal', AHORA).code, 'BOLETO_INVALIDO');
+  });
+
   // Las tareas siguientes agregan sus pruebas aquí, antes de esta línea.
 }
