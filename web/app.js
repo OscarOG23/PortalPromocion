@@ -77,8 +77,11 @@ function pintarPortal(ctx) {
 function renglon(d) {
   var li = document.createElement('li');
   li.className = 'destino';
+  // Defensa en profundidad: aunque el servidor ya filtra, aquí no se arma un
+  // <a> salvo que el enlace sea de verdad una URL https.
+  var tieneEnlace = typeof d.enlace === 'string' && /^https:\/\//.test(d.enlace);
   var caja;
-  if (d.enlace) {
+  if (tieneEnlace) {
     caja = document.createElement('a');
     caja.href = d.enlace;
     caja.target = '_blank';
@@ -89,7 +92,13 @@ function renglon(d) {
   }
   var nombre = document.createElement('span');
   nombre.className = 'nombre';
-  nombre.textContent = d.enlace ? d.nombre : d.nombre + ' — No disponible';
+  nombre.textContent = d.nombre + (tieneEnlace ? '' : ' — No disponible');
+  if (tieneEnlace) {
+    var pista = document.createElement('span');
+    pista.className = 'solo-lector';
+    pista.textContent = ' (abre en otra pestaña)';
+    nombre.appendChild(pista);
+  }
   var estado = document.createElement('span');
   var codigo = ETIQUETAS_ESTADO[d.estado] ? d.estado : 'NO_SE_SABE';
   estado.className = 'estado estado-' + codigo;
@@ -100,30 +109,66 @@ function renglon(d) {
   return li;
 }
 
+function mostrarAvisoPortal(mensaje) {
+  var aviso = el('aviso-portal');
+  aviso.textContent = mensaje || '';
+  aviso.hidden = !mensaje;
+}
+
 function cargarContexto() {
   var boleto = leerBoleto();
   if (!boleto) { mostrarAcceso(''); return; }
+  var entrandoAlPortal = el('portal').hidden;
   llamar('contexto', { boleto: boleto }).then(function (r) {
-    if (r.ok) { ultimaCarga = Date.now(); pintarPortal(r); return; }
+    // El usuario pudo haber salido (o cambiado de boleto) mientras la
+    // llamada estaba en el aire: una respuesta vieja no debe pisar la nueva.
+    if (leerBoleto() !== boleto) return;
+
+    if (r.ok) {
+      ultimaCarga = Date.now();
+      mostrarAvisoPortal('');
+      try {
+        pintarPortal(r);
+        // Solo al ENTRAR al portal (recién logueado o recién cargada la
+        // página): un refresco periódico con el portal ya abierto no debe
+        // robarle el foco a quien está leyendo.
+        if (entrandoAlPortal) el('identidad').focus();
+      } catch (e) {
+        mostrarAcceso('Algo salió mal. Intente de nuevo.');
+      }
+      return;
+    }
     if (r.code === 'BOLETO_INVALIDO' || r.code === 'BOLETO_VENCIDO') {
       guardarBoleto(null);
       mostrarAcceso(r.message);
       return;
     }
-    // Sin conexión o error del servidor: el boleto sigue siendo bueno, no se borra.
+    // Sin conexión o error del servidor: el boleto sigue siendo bueno, no se
+    // borra. Si el portal ya se veía, se queda ahí (los enlaces ya cargados
+    // siguen sirviendo); si no, se manda al acceso como antes.
+    if (!el('portal').hidden) {
+      mostrarAvisoPortal('No se pudo actualizar. Los enlaces siguen sirviendo; intente más tarde.');
+      return;
+    }
     mostrarAcceso(r.message || 'Algo salió mal. Intente de nuevo.');
   });
 }
 
 el('form-acceso').addEventListener('submit', function (ev) {
   ev.preventDefault();
+  var usuario = el('usuario').value.trim();
+  var contrasena = el('contrasena').value;
+  if (!usuario || !contrasena) {
+    el('error-acceso').textContent = 'Escriba usuario y contraseña.';
+    return;
+  }
   var boton = el('btn-entrar');
   boton.disabled = true;
   el('error-acceso').textContent = '';
-  llamar('iniciarSesion', { usuario: el('usuario').value, contrasena: el('contrasena').value })
+  llamar('iniciarSesion', { usuario: usuario, contrasena: contrasena })
     .then(function (r) {
       boton.disabled = false;
-      if (!r.ok) { el('error-acceso').textContent = r.message; return; }
+      if (!r.ok) { el('error-acceso').textContent = r.message || 'Algo salió mal. Intente de nuevo.'; return; }
       guardarBoleto(r.boleto);
       el('contrasena').value = '';
       mostrar('cargando');

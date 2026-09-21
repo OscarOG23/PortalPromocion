@@ -24,9 +24,16 @@ button { min-height: 44px; font-size: 1rem; border-radius: 4px; cursor: pointer;
 
 header { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
          padding: .75rem 0; border-bottom: 2px solid var(--guinda); }
-#identidad { font-weight: 700; overflow-wrap: anywhere; }
+/* h1 por semántica (encabezado del portal), no por tamaño: se ve como la
+   identidad en negritas de siempre, no como el h1 grande de acceso. */
+#identidad { font-size: 1.1rem; margin: 0; color: var(--texto); font-weight: 700; overflow-wrap: anywhere; }
 #periodo { margin: 0; }
 #btn-salir { background: none; border: 1px solid var(--borde); padding: 0 1rem; flex-shrink: 0; }
+#aviso-portal { font-size: .85rem; color: var(--ambar); margin: .5rem 0; }
+
+/* Visualmente oculto pero disponible para lectores de pantalla. */
+.solo-lector { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+               overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .apartado h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;
                color: var(--suave); margin: 1.5rem 0 .5rem; }

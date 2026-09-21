@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Los enlaces llevan boletos: que no se filtren en el Referer. -->
   <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>Promoción de la Salud</title>
   <link rel="stylesheet" href="estilos.css">
 </head>
@@ -26,11 +27,12 @@
     <section id="portal" hidden>
       <header>
         <div>
-          <div id="identidad"></div>
+          <h1 id="identidad" tabindex="-1"></h1>
           <div id="periodo" class="sub"></div>
         </div>
         <button id="btn-salir" type="button">Salir</button>
       </header>
+      <p id="aviso-portal" role="status" hidden></p>
       <div id="apartados"></div>
       <p id="sin-destinos" hidden>Todavía no hay capturadores asignados a su coordinación.</p>
     </section>
