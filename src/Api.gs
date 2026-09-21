@@ -64,8 +64,10 @@ function contextoDeBoleto(boleto) {
   var secreto = secretoDeBoletos();
   var vence = Date.now() + VIDA_BOLETO_DESTINO_HORAS * 3600000;
 
-  var destinos = destinosDeCoordinacion(leerCatalogo(HOJAS.DESTINOS), u.coordinacion_id)
-    .map(function (d) {
+  var filas = destinosDeCoordinacion(leerCatalogo(HOJAS.DESTINOS), u.coordinacion_id);
+  var nativos = consultarSondasNativas_(filas, coordinacion, anio, mes, secreto);
+
+  var destinos = filas.map(function (d) {
       var id = String(d.destino_id).trim();
       var boletoDestino = d.clase !== CLASES_DESTINO.FORMULARIO && !problemasDeDestino(d).length
         ? emitirBoleto(u.usuario, u.coordinacion_id, id, vence, secreto, u.nombre) : '';
@@ -75,7 +77,8 @@ function contextoDeBoleto(boleto) {
         apartado: d.apartado || '',
         clase: d.clase,
         enlace: enlaceDeDestino(d, coordinacion, boletoDestino),
-        estado: estadoDeDestino(d, coordinacion, anio, mes)
+        estado: String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA
+          ? (nativos[id] || ESTADOS.NO_SE_SABE) : estadoDeDestino(d, coordinacion, anio, mes)
       };
     });
 

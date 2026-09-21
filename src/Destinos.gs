@@ -12,6 +12,9 @@ var ESTADOS = { REPORTADO: 'REPORTADO', PENDIENTE: 'PENDIENTE', NO_SE_SABE: 'NO_
 
 var VALORES_IDENTIDAD = ['', 'NOMBRE', 'ID', 'USUARIO'];
 
+var SONDA_NATIVA = 'NATIVA';
+var VALORES_SONDA = ['', 'NINGUNA', SONDA_NATIVA];
+
 // Las sondas de avance se registran aquí por nombre (columna `sonda`). En la
 // Fase 1 no hay ninguna: todo destino sale gris. Cada sonda recibe
 // (destino, coordinacion, anio, mes) y devuelve { ok, reportado }.
@@ -56,6 +59,11 @@ function problemasDeDestino(d) {
   }
   if (VALORES_IDENTIDAD.indexOf(String(d.valor_identidad || '').trim().toUpperCase()) === -1) {
     p.push('valor_identidad debe ser NOMBRE, ID o USUARIO');
+  }
+  var sonda = String(d.sonda || '').trim().toUpperCase();
+  if (VALORES_SONDA.indexOf(sonda) === -1) p.push('sonda debe ser NINGUNA o NATIVA');
+  if (sonda === SONDA_NATIVA && clase === CLASES_DESTINO.FORMULARIO) {
+    p.push('un formulario no contesta sondas nativas');
   }
   return p;
 }
@@ -112,4 +120,65 @@ function estadoDeDestino(destino, coordinacion, anio, mes, sondas) {
   var nombre = String(destino.sonda || '').trim();
   if (!Object.prototype.hasOwnProperty.call(registro, nombre)) return ESTADOS.NO_SE_SABE;
   return consultarSonda(function () { return registro[nombre](destino, coordinacion, anio, mes); });
+}
+
+// --- Sondas nativas -------------------------------------------------------
+// Protocolo con los hermanos (ver docs/superpowers/specs/2026-09-21-fase-5-
+// sondas-design.md): GET <url>?sonda=<boleto>&anio=<AAAA>&mes=<1-12>, boleto
+// de destino 'sonda:' + destino_id, vida de 5 minutos, usuario 'mascara'.
+// Responden JSON { ok:true, reportado:<bool>, ... } o { ok:false, code }.
+
+function urlDeSonda(destino, boleto, anio, mes) {
+  return _conParametros(String(destino.url).trim(), [['sonda', boleto], ['anio', anio], ['mes', mes]]);
+}
+
+// Solo un 200 con JSON { ok: true, reportado: <booleano> } dice algo. Una
+// página de login de Google, un 500 o un 'true' en texto son "no se sabe".
+function interpretarRespuestaSonda(codigoHttp, texto) {
+  if (codigoHttp !== 200) return null;
+  var r;
+  try { r = JSON.parse(texto); } catch (e) { return null; }
+  if (!r || r.ok !== true || typeof r.reportado !== 'boolean') return null;
+  return { ok: true, reportado: r.reportado };
+}
+
+var VIDA_BOLETO_SONDA_MIN = 5;
+var CACHE_SONDA_SEG = 600;
+
+// Pregunta a todos los hermanos NATIVA a la vez (fetchAll) y guarda en caché
+// 10 minutos cada respuesta clara. Devuelve { destino_id: estado }; lo que no
+// conteste claro queda NO_SE_SABE. Cualquier falla general: todos gris.
+function consultarSondasNativas_(destinos, coordinacion, anio, mes, secreto) {
+  var estados = {};
+  var nativos = destinos.filter(function (d) {
+    return String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA && !problemasDeDestino(d).length;
+  });
+  if (!nativos.length) return estados;
+  try {
+    var cache = CacheService.getScriptCache();
+    var vence = Date.now() + VIDA_BOLETO_SONDA_MIN * 60000;
+    var pendientes = [];
+    nativos.forEach(function (d) {
+      var id = String(d.destino_id).trim();
+      var clave = 'sonda:' + id + ':' + coordinacion.coordinacion_id + ':' + anio + '-' + mes;
+      var guardado = cache.get(clave);
+      if (guardado) { estados[id] = guardado; return; }
+      var boleto = emitirBoleto('mascara', coordinacion.coordinacion_id, 'sonda:' + id, vence, secreto,
+                                coordinacion.nombre);
+      pendientes.push({ id: id, clave: clave, url: urlDeSonda(d, boleto, anio, mes) });
+    });
+    if (!pendientes.length) return estados;
+    var respuestas = UrlFetchApp.fetchAll(pendientes.map(function (p) {
+      return { url: p.url, muteHttpExceptions: true, followRedirects: true };
+    }));
+    respuestas.forEach(function (resp, i) {
+      var r = interpretarRespuestaSonda(resp.getResponseCode(), resp.getContentText());
+      var estado = estadoDeSonda(r);
+      estados[pendientes[i].id] = estado;
+      if (estado !== ESTADOS.NO_SE_SABE) cache.put(pendientes[i].clave, estado, CACHE_SONDA_SEG);
+    });
+  } catch (e) {
+    console.error(e);
+  }
+  return estados;
 }

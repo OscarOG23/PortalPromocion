@@ -361,5 +361,34 @@ function registrarPruebas() {
                 { ok: false, code: 'ERROR_INTERNO', message: 'Ocurrió un error. Intente de nuevo.' });
   });
 
+  // --- Sondas nativas -----------------------------------------------------
+
+  prueba('sonda nativa: la columna acepta NATIVA en hermanos, no en formularios', function () {
+    var hermano = destino({ clase: 'HERMANO_CON_CONTRASENA', param_identidad: '', sonda: 'NATIVA',
+                            url: 'https://script.google.com/macros/s/X/exec' });
+    assertIgual([problemasDeDestino(hermano).length,
+                 problemasDeDestino(destino({ sonda: 'NATIVA' })).length,
+                 problemasDeDestino(destino({ sonda: 'INVENTADA' })).length,
+                 problemasDeDestino(destino({ sonda: '' })).length],
+                [0, 1, 1, 0]);
+  });
+
+  prueba('sonda nativa: la url lleva boleto y periodo', function () {
+    var d = destino({ clase: 'HERMANO_CON_CONTRASENA', url: 'https://script.google.com/macros/s/X/exec' });
+    assertIgual(urlDeSonda(d, 'AAA.BBB', 2026, 9),
+                'https://script.google.com/macros/s/X/exec?sonda=AAA.BBB&anio=2026&mes=9');
+  });
+
+  prueba('sonda nativa: solo un 200 con JSON claro cuenta', function () {
+    assertIgual([interpretarRespuestaSonda(200, '{"ok":true,"reportado":true,"unidades":2}'),
+                 interpretarRespuestaSonda(200, '{"ok":true,"reportado":false}'),
+                 interpretarRespuestaSonda(200, '{"ok":false,"code":"BOLETO_INVALIDO"}'),
+                 interpretarRespuestaSonda(200, '{"ok":true,"reportado":"true"}'),
+                 interpretarRespuestaSonda(200, '<html>login</html>'),
+                 interpretarRespuestaSonda(500, '{"ok":true,"reportado":true}')],
+                [{ ok: true, reportado: true }, { ok: true, reportado: false },
+                 null, null, null, null]);
+  });
+
   // Las tareas siguientes agregan sus pruebas aquí, antes de esta línea.
 }

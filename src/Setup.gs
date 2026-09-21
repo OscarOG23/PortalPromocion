@@ -219,7 +219,7 @@ var DESTINOS_CONOCIDOS = [
   { destino_id: 'determinantes', nombre: 'Talleres por Determinantes', apartado: 'Reporte mensual',
     clase: 'HERMANO_CON_CONTRASENA',
     url: 'https://script.google.com/macros/s/AKfycbzpwr_wfBevrI-UkrUSvrFOXwXKu2qqGCL_OQWa5uZ3DGivT7CSM3h7SEDsRLH8_sOP/exec',
-    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NINGUNA', orden: 1, activo: 'TRUE' },
+    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 1, activo: 'TRUE' },
   { destino_id: 'mensual_coordinacion', nombre: 'Reporte Mensual de Coordinación', apartado: 'Reporte mensual',
     clase: 'HERMANO_CON_CONTRASENA',
     url: 'https://script.google.com/macros/s/AKfycbziZ5yNV_uqGtnkXIprgvT4FyijVI6DojPQ39HQ4VBkIW7jcVwQ2qod-AT1HHUxu6AYog/exec',
@@ -239,5 +239,22 @@ function sembrarDestinosConocidos() {
   if (faltan.length) escribirFilas(HOJAS.DESTINOS, faltan);
   Logger.log(faltan.length ? 'agregados: ' + faltan.map(function (d) { return d.destino_id; }).join(', ')
                            : 'no faltaba ninguno');
+  verificarDestinos();
+}
+
+// Correr una vez desde el botón Ejecutar cuando Determinantes ya conteste
+// sondas: pasa su fila de DESTINOS a sonda NATIVA sin tocar lo demás.
+function activarSondaDeterminantes() {
+  var filas = leerTabla(HOJAS.DESTINOS);
+  var cambiadas = 0;
+  filas.forEach(function (d) {
+    if (String(d.destino_id).trim() === 'determinantes' && String(d.sonda).trim() !== 'NATIVA') {
+      d.sonda = 'NATIVA';
+      cambiadas++;
+    }
+  });
+  if (cambiadas) reemplazarFilas(HOJAS.DESTINOS, filas);
+  invalidarCatalogo(HOJAS.DESTINOS);
+  Logger.log(cambiadas ? 'determinantes ahora con sonda NATIVA' : 'no había nada que cambiar');
   verificarDestinos();
 }
