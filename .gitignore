@@ -1,2 +1,14 @@
 # Worktrees locales
 .worktrees/
+
+# clasp: el scriptId y las credenciales no se versionan
+.clasp.json
+.clasprc.json
+
+# Sistema
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Temporales de Office
+~$*
