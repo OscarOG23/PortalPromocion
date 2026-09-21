@@ -279,5 +279,34 @@ function registrarPruebas() {
                 ['NO_SE_SABE', 'NO_SE_SABE', 'REPORTADO']);
   });
 
+  // --- API ----------------------------------------------------------------
+
+  prueba('despachar: acción desconocida', function () {
+    assertIgual(despachar({ accion: 'borrarTodo' }, {}).code, 'ACCION_DESCONOCIDA');
+  });
+
+  prueba('despachar: nombres heredados de Object no son acciones', function () {
+    var tabla = { eco: function (p) { return p; } };
+    assertIgual(['constructor', 'toString', '__proto__', 'hasOwnProperty'].map(function (a) {
+      return despachar({ accion: a }, tabla).code;
+    }), ['ACCION_DESCONOCIDA', 'ACCION_DESCONOCIDA', 'ACCION_DESCONOCIDA', 'ACCION_DESCONOCIDA']);
+  });
+
+  prueba('despachar: petición nula', function () {
+    assertIgual([despachar(null, {}).code, despachar(undefined, {}).code],
+                ['ACCION_DESCONOCIDA', 'ACCION_DESCONOCIDA']);
+  });
+
+  prueba('despachar: llama a la acción con la petición', function () {
+    var tabla = { eco: function (p) { return { ok: true, dato: p.dato }; } };
+    assertIgual(despachar({ accion: 'eco', dato: 7 }, tabla), { ok: true, dato: 7 });
+  });
+
+  prueba('despachar: una acción que lanza da ERROR_INTERNO', function () {
+    var tabla = { rota: function () { throw new Error('se cayó la hoja'); } };
+    assertIgual(despachar({ accion: 'rota' }, tabla),
+                { ok: false, code: 'ERROR_INTERNO', message: 'se cayó la hoja' });
+  });
+
   // Las tareas siguientes agregan sus pruebas aquí, antes de esta línea.
 }
