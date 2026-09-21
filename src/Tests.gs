@@ -171,5 +171,113 @@ function registrarPruebas() {
     assertLanza(function () { registrarEvento('chiautla', 'BORRAR_TODO', ''); }, 'ACCION_INVALIDA');
   });
 
+  // --- Destinos -----------------------------------------------------------
+
+  var FORM = 'https://docs.google.com/forms/d/e/1FAIpQLSabc/viewform';
+  var COORD_14 = { coordinacion_id: 'COOR14', nombre: 'CEAPS SANTA MARÍA CHIMALHUACAN',
+                   usuario: 'ceapssantamariachimalhuacan' };
+
+  function destino(campos) {
+    var base = { destino_id: 'd1', nombre: 'D1', apartado: 'A', clase: 'FORMULARIO', url: FORM,
+                 aplica_a: 'TODAS', param_identidad: 'entry.123', valor_identidad: '',
+                 sonda: 'NINGUNA', orden: 1, activo: 'TRUE' };
+    Object.keys(campos || {}).forEach(function (k) { base[k] = campos[k]; });
+    return base;
+  }
+
+  prueba('aplica_a: TODAS, lista y vacío', function () {
+    assertIgual([_aplicaA(destino({ aplica_a: 'todas' }), 'COOR05'),
+                 _aplicaA(destino({ aplica_a: 'COOR01, COOR05' }), 'COOR05'),
+                 _aplicaA(destino({ aplica_a: 'COOR01' }), 'COOR05'),
+                 _aplicaA(destino({ aplica_a: '' }), 'COOR05')],
+                [true, true, false, false]);
+  });
+
+  prueba('destinos de una coordinación: filtra y ordena numérico', function () {
+    var filas = [destino({ destino_id: 'diez', orden: 10 }),
+                 destino({ destino_id: 'inactivo', orden: 1, activo: 'FALSE' }),
+                 destino({ destino_id: 'ajeno', orden: 1, aplica_a: 'COOR01' }),
+                 destino({ destino_id: 'dos', orden: '2' })];
+    assertIgual(destinosDeCoordinacion(filas, 'COOR05').map(function (d) { return d.destino_id; }),
+                ['dos', 'diez']);
+  });
+
+  prueba('problemas: una fila correcta de cada clase no tiene', function () {
+    assertIgual([
+      problemasDeDestino(destino()),
+      problemasDeDestino(destino({ clase: 'HERMANO_CON_CONTRASENA', param_identidad: '',
+                                   url: 'https://script.google.com/macros/s/X/exec' })),
+      problemasDeDestino(destino({ clase: 'HERMANO_SIN_CONTRASENA', param_identidad: 'coordinacion',
+                                   url: 'https://script.google.com/macros/s/Y/exec' }))
+    ], [[], [], []]);
+  });
+
+  prueba('problemas: detecta cada error de configuración', function () {
+    assertIgual([
+      problemasDeDestino(destino({ destino_id: '' })).length,
+      problemasDeDestino(destino({ clase: 'PAGINA' })).length,
+      problemasDeDestino(destino({ url: 'http://inseguro.com' })).length,
+      problemasDeDestino(destino({ param_identidad: '' })).length,
+      problemasDeDestino(destino({ param_identidad: 'coordinacion' })).length,
+      problemasDeDestino(destino({ valor_identidad: 'CORREO' })).length,
+      problemasDeDestino(destino({ clase: 'HERMANO_SIN_CONTRASENA', param_identidad: '' })).length
+    ], [1, 1, 1, 1, 1, 1, 1]);
+  });
+
+  prueba('enlace de formulario: pre-llenado con el nombre, codificado', function () {
+    assertIgual(enlaceDeDestino(destino(), COORD_14, ''),
+                FORM + '?usp=pp_url&entry.123=CEAPS%20SANTA%20MAR%C3%8DA%20CHIMALHUACAN');
+  });
+
+  prueba('enlace de formulario: pre-llenado con el id', function () {
+    assertIgual(enlaceDeDestino(destino({ valor_identidad: 'ID' }), COORD_14, ''),
+                FORM + '?usp=pp_url&entry.123=COOR14');
+  });
+
+  prueba('enlace de hermano con contraseña: solo el boleto, respeta ? existente', function () {
+    var d = destino({ clase: 'HERMANO_CON_CONTRASENA', param_identidad: '',
+                      url: 'https://script.google.com/macros/s/X/exec?v=2' });
+    assertIgual(enlaceDeDestino(d, COORD_14, 'AAA.BBB'),
+                'https://script.google.com/macros/s/X/exec?v=2&boleto=AAA.BBB');
+  });
+
+  prueba('enlace de hermano sin contraseña: boleto y coordinación', function () {
+    var d = destino({ clase: 'HERMANO_SIN_CONTRASENA', param_identidad: 'coordinacion',
+                      valor_identidad: 'ID', url: 'https://script.google.com/macros/s/Y/exec' });
+    assertIgual(enlaceDeDestino(d, COORD_14, 'AAA.BBB'),
+                'https://script.google.com/macros/s/Y/exec?boleto=AAA.BBB&coordinacion=COOR14');
+  });
+
+  prueba('enlace de fila mal configurada es null', function () {
+    assertIgual(enlaceDeDestino(destino({ param_identidad: '' }), COORD_14, ''), null);
+  });
+
+  prueba('estado: verde solo con un sí explícito de la sonda', function () {
+    assertIgual(estadoDeSonda({ ok: true, reportado: true }), 'REPORTADO');
+  });
+
+  prueba('estado: un no explícito es pendiente', function () {
+    assertIgual(estadoDeSonda({ ok: true, reportado: false }), 'PENDIENTE');
+  });
+
+  prueba('estado: nada se pinta de verde por falta de datos', function () {
+    assertIgual([null, undefined, {}, { ok: false, reportado: true }, { ok: true },
+                 { ok: true, reportado: 'true' }, { ok: true, reportado: 1 }].map(estadoDeSonda),
+                ['NO_SE_SABE', 'NO_SE_SABE', 'NO_SE_SABE', 'NO_SE_SABE', 'NO_SE_SABE',
+                 'NO_SE_SABE', 'NO_SE_SABE']);
+  });
+
+  prueba('estado: una sonda que revienta da gris', function () {
+    assertIgual(consultarSonda(function () { throw new Error('hoja borrada'); }), 'NO_SE_SABE');
+  });
+
+  prueba('estado de destino: sin sonda registrada es gris', function () {
+    var sondas = { SIEMPRE_SI: function () { return { ok: true, reportado: true }; } };
+    assertIgual([estadoDeDestino(destino({ sonda: 'NINGUNA' }), COORD_14, 2026, 9, sondas),
+                 estadoDeDestino(destino({ sonda: 'INVENTADA' }), COORD_14, 2026, 9, sondas),
+                 estadoDeDestino(destino({ sonda: 'SIEMPRE_SI' }), COORD_14, 2026, 9, sondas)],
+                ['NO_SE_SABE', 'NO_SE_SABE', 'REPORTADO']);
+  });
+
   // Las tareas siguientes agregan sus pruebas aquí, antes de esta línea.
 }
