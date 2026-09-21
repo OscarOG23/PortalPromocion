@@ -59,7 +59,8 @@ function verificarBoleto(boleto, secreto, destino, ahora) {
 
   var datos;
   try { datos = JSON.parse(_desdeB64(partes[0])); } catch (e) { return invalido; }
-  if (!datos || !datos.c || !datos.u || datos.d !== destino) return invalido;
+  if (!datos || typeof datos.c !== 'string' || !datos.c ||
+      typeof datos.u !== 'string' || !datos.u || datos.d !== destino) return invalido;
 
   if (!(Number(datos.v) > Number(ahora))) {
     return { ok: false, code: 'BOLETO_VENCIDO', message: 'Su acceso venció. Vuelva a entrar.' };

@@ -29,7 +29,7 @@ function _aplicaA(destino, coordinacionId) {
 function destinosDeCoordinacion(filas, coordinacionId) {
   return filas
     .filter(function (d) { return esVerdadero(d.activo) && _aplicaA(d, coordinacionId); })
-    .sort(function (a, b) { return Number(a.orden) - Number(b.orden); });
+    .sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); });
 }
 
 // Lista de lo que está mal en una fila, en palabras. Vacía = fila utilizable.
@@ -40,9 +40,13 @@ function problemasDeDestino(d) {
   var clase = d.clase;
   var param = String(d.param_identidad || '').trim();
   if (!String(d.destino_id || '').trim()) p.push('falta destino_id');
+  if (String(d.destino_id || '').trim().toLowerCase() === DESTINO_PORTAL) {
+    p.push('destino_id "' + DESTINO_PORTAL + '" está reservado para la sesión del portal');
+  }
   var clases = [CLASES_DESTINO.CON_CONTRASENA, CLASES_DESTINO.SIN_CONTRASENA, CLASES_DESTINO.FORMULARIO];
   if (clases.indexOf(clase) === -1) p.push('clase desconocida: "' + clase + '"');
   if (String(d.url || '').indexOf('https://') !== 0) p.push('la url debe empezar con https://');
+  if (String(d.url || '').indexOf('#') !== -1) p.push('la url no debe llevar #');
   if (clase === CLASES_DESTINO.FORMULARIO) {
     if (!param) p.push('un formulario necesita param_identidad (entry.<id>)');
     else if (!/^entry\.\d+$/.test(param)) p.push('param_identidad de formulario debe ser entry.<número>');

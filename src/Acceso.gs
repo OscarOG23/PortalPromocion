@@ -1,5 +1,6 @@
 var MAX_INTENTOS = 5;
 var MINUTOS_BLOQUEO = 15;
+var MAX_LARGO_USUARIO = 64;
 
 function _debeBloquear(intentos) {
   return intentos >= MAX_INTENTOS;
@@ -33,6 +34,9 @@ function _resultadoAcceso(fila, contrasena) {
 // Un boleto bien firmado no basta: la cuenta tiene que seguir activa y seguir
 // siendo de la misma coordinación. Es la forma de dejar fuera a alguien sin
 // esperar a que venza su boleto de 30 días.
+// Ojo: USUARIOS se lee con la caché de leerCatalogo (30 min). Una baja surte
+// efecto al vencer la caché, o de inmediato con invalidarCatalogo('USUARIOS')
+// desde el editor.
 function _cuentaDelBoleto(verificado, filas) {
   if (!verificado.ok) return verificado;
   var invalido = { ok: false, code: 'BOLETO_INVALIDO',
@@ -48,6 +52,9 @@ function _claveIntentos(usuario) {
 }
 
 function iniciarSesion(nombreUsuario, contrasena) {
+  // CacheService no acepta claves de más de 250 caracteres; ningún usuario
+  // real pasa de 30.
+  if (String(nombreUsuario || '').length > MAX_LARGO_USUARIO) return _resultadoAcceso(null, '');
   var cache = CacheService.getScriptCache();
   var claveIntentos = _claveIntentos(nombreUsuario);
   var intentos = parseInt(cache.get(claveIntentos) || '0', 10);

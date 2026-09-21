@@ -37,6 +37,7 @@ function aBuffer(valor) {
 
 const contexto = vm.createContext({
   Logger: { log: console.log },
+  console: console,
   Utilities: {
     DigestAlgorithm: { SHA_256: 'SHA_256' },
     Charset: { UTF_8: 'UTF_8' },

@@ -106,6 +106,26 @@ function registrarPruebas() {
     assertIgual(verificarBoleto(b, '', 'portal', AHORA).code, 'BOLETO_INVALIDO');
   });
 
+  prueba('boleto: ida y vuelta con los tres largos de relleno', function () {
+    var usuarios = ['a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef'];
+    var obtenidos = usuarios.map(function (u) {
+      var b = emitirBoleto(u, 'COOR01', 'portal', LUEGO, SECRETO);
+      return verificarBoleto(b, SECRETO, 'portal', AHORA).usuario;
+    });
+    assertIgual(obtenidos, usuarios);
+  });
+
+  prueba('boleto: una firma con un carácter cambiado es inválida', function () {
+    var b = emitirBoleto('chiautla', 'COOR01', 'portal', LUEGO, SECRETO);
+    var partes = b.split('.');
+    var firma = partes[1];
+    var ultimo = firma.charAt(firma.length - 1);
+    var otro = ultimo === 'A' ? 'B' : 'A';
+    var firmaAlterada = firma.slice(0, -1) + otro;
+    assertIgual(verificarBoleto(partes[0] + '.' + firmaAlterada, SECRETO, 'portal', AHORA).code,
+                'BOLETO_INVALIDO');
+  });
+
   // --- Acceso -------------------------------------------------------------
 
   var FILA_CHIAUTLA = { usuario: 'chiautla', nombre: 'CHIAUTLA', rol: 'COORDINACION',
@@ -193,6 +213,14 @@ function registrarPruebas() {
                 [true, true, false, false]);
   });
 
+  prueba('destinos: orden vacío va primero y no rompe el orden', function () {
+    var filas = [destino({ destino_id: 'tres', orden: 3 }),
+                 destino({ destino_id: 'vacio', orden: '' }),
+                 destino({ destino_id: 'uno', orden: 1 })];
+    assertIgual(destinosDeCoordinacion(filas, 'COOR05').map(function (d) { return d.destino_id; }),
+                ['vacio', 'uno', 'tres']);
+  });
+
   prueba('destinos de una coordinación: filtra y ordena numérico', function () {
     var filas = [destino({ destino_id: 'diez', orden: 10 }),
                  destino({ destino_id: 'inactivo', orden: 1, activo: 'FALSE' }),
@@ -222,6 +250,19 @@ function registrarPruebas() {
       problemasDeDestino(destino({ valor_identidad: 'CORREO' })).length,
       problemasDeDestino(destino({ clase: 'HERMANO_SIN_CONTRASENA', param_identidad: '' })).length
     ], [1, 1, 1, 1, 1, 1, 1]);
+  });
+
+  prueba('problemas: destino_id portal está reservado', function () {
+    assertIgual(problemasDeDestino(destino({ destino_id: ' Portal ' })).length, 1);
+    assertIgual(enlaceDeDestino(destino({ destino_id: 'portal', clase: 'HERMANO_CON_CONTRASENA',
+                                          param_identidad: '',
+                                          url: 'https://script.google.com/macros/s/X/exec' }),
+                                COORD_14, 'AAA.BBB'),
+                null);
+  });
+
+  prueba('problemas: una url con # se rechaza', function () {
+    assertIgual(problemasDeDestino(destino({ url: FORM + '#x' })).length, 1);
   });
 
   prueba('enlace de formulario: pre-llenado con el nombre, codificado', function () {
@@ -302,10 +343,10 @@ function registrarPruebas() {
     assertIgual(despachar({ accion: 'eco', dato: 7 }, tabla), { ok: true, dato: 7 });
   });
 
-  prueba('despachar: una acción que lanza da ERROR_INTERNO', function () {
+  prueba('despachar: una acción que lanza da ERROR_INTERNO sin filtrar el mensaje', function () {
     var tabla = { rota: function () { throw new Error('se cayó la hoja'); } };
     assertIgual(despachar({ accion: 'rota' }, tabla),
-                { ok: false, code: 'ERROR_INTERNO', message: 'se cayó la hoja' });
+                { ok: false, code: 'ERROR_INTERNO', message: 'Ocurrió un error. Intente de nuevo.' });
   });
 
   // Las tareas siguientes agregan sus pruebas aquí, antes de esta línea.

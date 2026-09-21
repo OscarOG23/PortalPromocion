@@ -42,7 +42,10 @@ function despachar(peticion, acciones) {
   try {
     return tabla[accion](peticion);
   } catch (err) {
-    return { ok: false, code: 'ERROR_INTERNO', message: err.message };
+    // El mensaje real va al log de ejecución; la página es pública y ese
+    // texto es interno, no se le muestra a quien captura.
+    console.error(err);
+    return { ok: false, code: 'ERROR_INTERNO', message: 'Ocurrió un error. Intente de nuevo.' };
   }
 }
 
@@ -63,10 +66,11 @@ function contextoDeBoleto(boleto) {
 
   var destinos = destinosDeCoordinacion(leerCatalogo(HOJAS.DESTINOS), u.coordinacion_id)
     .map(function (d) {
-      var boletoDestino = d.clase === CLASES_DESTINO.FORMULARIO ? ''
-        : emitirBoleto(u.usuario, u.coordinacion_id, String(d.destino_id).trim(), vence, secreto);
+      var id = String(d.destino_id).trim();
+      var boletoDestino = d.clase !== CLASES_DESTINO.FORMULARIO && !problemasDeDestino(d).length
+        ? emitirBoleto(u.usuario, u.coordinacion_id, id, vence, secreto) : '';
       return {
-        destino_id: d.destino_id,
+        destino_id: id,
         nombre: d.nombre,
         apartado: d.apartado || '',
         clase: d.clase,
