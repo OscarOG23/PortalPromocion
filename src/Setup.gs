@@ -223,7 +223,7 @@ var DESTINOS_CONOCIDOS = [
   { destino_id: 'mensual_coordinacion', nombre: 'Reporte Mensual de Coordinación', apartado: 'Reporte mensual',
     clase: 'HERMANO_CON_CONTRASENA',
     url: 'https://script.google.com/macros/s/AKfycbziZ5yNV_uqGtnkXIprgvT4FyijVI6DojPQ39HQ4VBkIW7jcVwQ2qod-AT1HHUxu6AYog/exec',
-    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NINGUNA', orden: 2, activo: 'TRUE' },
+    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 2, activo: 'TRUE' },
   // SIPS no tiene acceso: cualquiera elige cualquier coordinación. El nombre
   // solo la deja preseleccionada; por eso va en claro y no se verifica boleto.
   { destino_id: 'sips', nombre: 'SIPS — Fechas a Conmemorar', apartado: 'Reporte mensual',
@@ -242,19 +242,23 @@ function sembrarDestinosConocidos() {
   verificarDestinos();
 }
 
-// Correr una vez desde el botón Ejecutar cuando Determinantes ya conteste
-// sondas: pasa su fila de DESTINOS a sonda NATIVA sin tocar lo demás.
-function activarSondaDeterminantes() {
+// Correr desde el botón Ejecutar cuando un capturador empiece a contestar
+// sondas: copia la columna `sonda` de DESTINOS_CONOCIDOS a las filas que ya
+// existen en DESTINOS, sin tocar ninguna otra columna.
+function activarSondasConocidas() {
+  var esperada = {};
+  DESTINOS_CONOCIDOS.forEach(function (d) { esperada[d.destino_id] = d.sonda; });
   var filas = leerTabla(HOJAS.DESTINOS);
-  var cambiadas = 0;
+  var cambiadas = [];
   filas.forEach(function (d) {
-    if (String(d.destino_id).trim() === 'determinantes' && String(d.sonda).trim() !== 'NATIVA') {
-      d.sonda = 'NATIVA';
-      cambiadas++;
+    var id = String(d.destino_id).trim();
+    if (esperada[id] && String(d.sonda).trim() !== esperada[id]) {
+      d.sonda = esperada[id];
+      cambiadas.push(id + ' -> ' + esperada[id]);
     }
   });
-  if (cambiadas) reemplazarFilas(HOJAS.DESTINOS, filas);
+  if (cambiadas.length) reemplazarFilas(HOJAS.DESTINOS, filas);
   invalidarCatalogo(HOJAS.DESTINOS);
-  Logger.log(cambiadas ? 'determinantes ahora con sonda NATIVA' : 'no había nada que cambiar');
+  Logger.log(cambiadas.length ? 'sondas: ' + cambiadas.join(', ') : 'no había nada que cambiar');
   verificarDestinos();
 }

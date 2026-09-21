@@ -47,7 +47,7 @@ La máscara pregunta con un GET al `/exec` del hermano:
   siguen con `estadoDeDestino`.
 - La fila `determinantes` de `DESTINOS` pasa a `sonda = NATIVA`
   (`sembrarDestinosConocidos` no toca filas existentes: se cambia con una
-  función `activarSondaDeterminantes` para el botón Ejecutar).
+  función `activarSondasConocidas` para el botón Ejecutar, que copia la columna `sonda` de `DESTINOS_CONOCIDOS`).
 
 ## 3. Determinantes
 
