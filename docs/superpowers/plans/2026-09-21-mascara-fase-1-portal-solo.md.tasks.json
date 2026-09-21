@@ -55,12 +55,11 @@
     {
       "id": 6,
       "subject": "Task 6: Plataforma — hojas, catálogo, cuentas y secreto",
-      "status": "in_progress",
+      "status": "completed",
       "blockedBy": [
         5
       ],
-      "description": "**Goal:** Proyecto clasp ligado a hoja; setupDatabase, cargarUniverso, 22 cuentas, SECRETO_BOLETOS; runAllTests en el editor.\n\n```json:metadata\n{\"files\": [\"src/appsscript.json\", \"src/Sheets.gs\", \"src/Catalogos.generado.gs\", \"src/Setup.gs\"], \"verifyCommand\": \"node tools/run-tests.js && (manual) registros del editor de Apps Script\", \"acceptanceCriteria\": [\"22 coordinaciones, 69 unidades, 0 huérfanas\", \"22 cuentas creadas\", \"secreto no cambia al correr de nuevo\", \"runAllTests en el editor: 47 pruebas, 0 fallas\"]}\n```",
-      "note": "Codigo commiteado (c4a4abd). Falta: clasp create/push y correr Setup en el editor."
+      "description": "**Goal:** Proyecto clasp ligado a hoja; setupDatabase, cargarUniverso, 22 cuentas, SECRETO_BOLETOS; runAllTests en el editor.\n\n```json:metadata\n{\"files\": [\"src/appsscript.json\", \"src/Sheets.gs\", \"src/Catalogos.generado.gs\", \"src/Setup.gs\"], \"verifyCommand\": \"node tools/run-tests.js && (manual) registros del editor de Apps Script\", \"acceptanceCriteria\": [\"22 coordinaciones, 69 unidades, 0 huérfanas\", \"22 cuentas creadas\", \"secreto no cambia al correr de nuevo\", \"runAllTests en el editor: 47 pruebas, 0 fallas\"]}\n```"
     },
     {
       "id": 7,
@@ -74,13 +73,14 @@
     {
       "id": 8,
       "subject": "Task 8: Despliegue, Pages y verificación de punta a punta",
-      "status": "pending",
+      "status": "in_progress",
       "blockedBy": [
         6,
         7
       ],
-      "description": "**Goal:** Web app desplegado, Pages publicado desde web/, verificación en Android con Chrome firmado. Crear el repo público REQUIERE confirmación del usuario.\n\n```json:metadata\n{\"files\": [\".github/workflows/pages.yml\", \"README.md\", \"web/config.js\"], \"verifyCommand\": \"curl -sL <exec> ; verificación manual en Android\", \"acceptanceCriteria\": [\"doGet responde ok\", \"CREDENCIALES_INVALIDAS con contraseña mala\", \"abre en Android con Chrome firmado\", \"formulario abre pre-llenado\", \"verificarDestinos dice bien\"]}\n```"
+      "description": "**Goal:** Web app desplegado, Pages publicado desde web/, verificación en Android con Chrome firmado. Crear el repo público REQUIERE confirmación del usuario.\n\n```json:metadata\n{\"files\": [\".github/workflows/pages.yml\", \"README.md\", \"web/config.js\"], \"verifyCommand\": \"curl -sL <exec> ; verificación manual en Android\", \"acceptanceCriteria\": [\"doGet responde ok\", \"CREDENCIALES_INVALIDAS con contraseña mala\", \"abre en Android con Chrome firmado\", \"formulario abre pre-llenado\", \"verificarDestinos dice bien\"]}\n```",
+      "note": "Desplegado y probado con curl y navegador. Falta: filas de DESTINOS (formulario de prueba), Pages, prueba en Android."
     }
   ],
-  "lastUpdated": "2026-09-21T07:33:25.728656+00:00"
+  "lastUpdated": "2026-09-21T08:22:47.200253+00:00"
 }
