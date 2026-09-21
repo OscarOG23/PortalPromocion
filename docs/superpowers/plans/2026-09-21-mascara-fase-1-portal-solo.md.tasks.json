@@ -1,0 +1,68 @@
+{
+  "planPath": "docs/superpowers/plans/2026-09-21-mascara-fase-1-portal-solo.md",
+  "tasks": [
+    {
+      "id": 0,
+      "subject": "Task 0: Esqueleto y corredor de pruebas",
+      "status": "pending",
+      "description": "**Goal:** Corredor de pruebas en Node con shim de Utilities (SHA-256, HMAC, base64 web-safe, bytes con signo).\n\n```json:metadata\n{\"files\": [\".gitignore\", \"tools/run-tests.js\", \"src/TestRunner.gs\", \"src/Tests.gs\"], \"verifyCommand\": \"node tools/run-tests.js\", \"acceptanceCriteria\": [\"1 pruebas, 0 fallas\", \"shim devuelve bytes con signo\"]}\n```"
+    },
+    {
+      "id": 1,
+      "subject": "Task 1: Piezas copiadas de Determinantes",
+      "status": "pending",
+      "blockedBy": [0],
+      "description": "**Goal:** esVerdadero, sinAcentos, credenciales y usuarios con pruebas.\n\n```json:metadata\n{\"files\": [\"src/Claves.gs\", \"src/Credenciales.gs\", \"src/Usuarios.gs\", \"src/Tests.gs\"], \"verifyCommand\": \"node tools/run-tests.js\", \"acceptanceCriteria\": [\"8 pruebas, 0 fallas\", \"huella coincide con SHA-256 de abc\", \"usuarioDeCoordinacion quita acentos\"]}\n```"
+    },
+    {
+      "id": 2,
+      "subject": "Task 2: El boleto firmado",
+      "status": "pending",
+      "blockedBy": [1],
+      "description": "**Goal:** emitirBoleto / verificarBoleto con HMAC-SHA256, seguro para URL.\n\n```json:metadata\n{\"files\": [\"src/Boleto.gs\", \"src/Tests.gs\"], \"verifyCommand\": \"node tools/run-tests.js\", \"acceptanceCriteria\": [\"17 pruebas, 0 fallas\", \"alterado o de otro destino es BOLETO_INVALIDO\", \"vencido es BOLETO_VENCIDO; firma antes que vencimiento\", \"sin secreto lanza SIN_SECRETO\"]}\n```"
+    },
+    {
+      "id": 3,
+      "subject": "Task 3: Acceso — configuración, bitácora, sesión y bloqueo",
+      "status": "pending",
+      "blockedBy": [2],
+      "description": "**Goal:** iniciarSesion con bloqueo, boleto de portal de 30 días, usuarioDeBoleto que exige cuenta activa.\n\n```json:metadata\n{\"files\": [\"src/Config.gs\", \"src/Auditoria.gs\", \"src/Acceso.gs\", \"src/Tests.gs\"], \"verifyCommand\": \"node tools/run-tests.js\", \"acceptanceCriteria\": [\"28 pruebas, 0 fallas\", \"mismo error para inexistente, inactivo y contraseña mala\", \"cuenta dada de baja invalida el boleto\"]}\n```"
+    },
+    {
+      "id": 4,
+      "subject": "Task 4: Directorio de destinos, enlaces y estados",
+      "status": "pending",
+      "blockedBy": [3],
+      "description": "**Goal:** destinosDeCoordinacion, problemasDeDestino, enlaceDeDestino, estadoDeSonda (gris por defecto).\n\n```json:metadata\n{\"files\": [\"src/Destinos.gs\", \"src/Tests.gs\"], \"verifyCommand\": \"node tools/run-tests.js\", \"acceptanceCriteria\": [\"42 pruebas, 0 fallas\", \"formulario pre-llenado codificado\", \"fila mal configurada da enlace null\", \"nada verde por falta de datos\"]}\n```"
+    },
+    {
+      "id": 5,
+      "subject": "Task 5: API — doPost, despacho y contexto",
+      "status": "pending",
+      "blockedBy": [4],
+      "description": "**Goal:** doPost/doGet, despachar seguro contra nombres heredados, contextoDeBoleto con boleto de 8 h por hermano.\n\n```json:metadata\n{\"files\": [\"src/Api.gs\", \"src/Tests.gs\"], \"verifyCommand\": \"node tools/run-tests.js\", \"acceptanceCriteria\": [\"47 pruebas, 0 fallas\", \"constructor/toString/__proto__ son ACCION_DESCONOCIDA\", \"accion que lanza da ERROR_INTERNO\"]}\n```"
+    },
+    {
+      "id": 6,
+      "subject": "Task 6: Plataforma — hojas, catálogo, cuentas y secreto",
+      "status": "pending",
+      "blockedBy": [5],
+      "description": "**Goal:** Proyecto clasp ligado a hoja; setupDatabase, cargarUniverso, 22 cuentas, SECRETO_BOLETOS; runAllTests en el editor.\n\n```json:metadata\n{\"files\": [\"src/appsscript.json\", \"src/Sheets.gs\", \"src/Catalogos.generado.gs\", \"src/Setup.gs\"], \"verifyCommand\": \"node tools/run-tests.js && (manual) registros del editor de Apps Script\", \"acceptanceCriteria\": [\"22 coordinaciones, 69 unidades, 0 huérfanas\", \"22 cuentas creadas\", \"secreto no cambia al correr de nuevo\", \"runAllTests en el editor: 47 pruebas, 0 fallas\"]}\n```"
+    },
+    {
+      "id": 7,
+      "subject": "Task 7: La pantalla (web/)",
+      "status": "pending",
+      "blockedBy": [5],
+      "description": "**Goal:** Página estática de acceso y lista de destinos agrupada, con estados y enlaces; boleto en localStorage.\n\n```json:metadata\n{\"files\": [\"web/index.html\", \"web/estilos.css\", \"web/config.js\", \"web/app.js\"], \"verifyCommand\": \"npx --yes serve web -l 5173 (manual)\", \"acceptanceCriteria\": [\"con boleto válido entra directo\", \"boleto inválido/vencido vuelve al acceso\", \"textContent, nunca innerHTML\", \"360 px sin scroll horizontal\"]}\n```"
+    },
+    {
+      "id": 8,
+      "subject": "Task 8: Despliegue, Pages y verificación de punta a punta",
+      "status": "pending",
+      "blockedBy": [6, 7],
+      "description": "**Goal:** Web app desplegado, Pages publicado desde web/, verificación en Android con Chrome firmado. Crear el repo público REQUIERE confirmación del usuario.\n\n```json:metadata\n{\"files\": [\".github/workflows/pages.yml\", \"README.md\", \"web/config.js\"], \"verifyCommand\": \"curl -sL <exec> ; verificación manual en Android\", \"acceptanceCriteria\": [\"doGet responde ok\", \"CREDENCIALES_INVALIDAS con contraseña mala\", \"abre en Android con Chrome firmado\", \"formulario abre pre-llenado\", \"verificarDestinos dice bien\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-09-21T00:00:00Z"
+}
