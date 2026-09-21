@@ -229,7 +229,7 @@ var DESTINOS_CONOCIDOS = [
   { destino_id: 'sips', nombre: 'SIPS — Fechas a Conmemorar', apartado: 'Reporte mensual',
     clase: 'HERMANO_SIN_CONTRASENA',
     url: 'https://script.google.com/macros/s/AKfycbxiwICPr2ZpBUtKgFudTdLhzctrGnuQmSRZlIuSYd-t-oSJTQU74fi7yjsV4fMlkyqL/exec',
-    aplica_a: 'TODAS', param_identidad: 'coordinacion', valor_identidad: 'NOMBRE', sonda: 'NINGUNA', orden: 3, activo: 'TRUE' }
+    aplica_a: 'TODAS', param_identidad: 'coordinacion', valor_identidad: 'NOMBRE', sonda: 'NATIVA', orden: 3, activo: 'TRUE' }
 ];
 
 function sembrarDestinosConocidos() {
