@@ -106,5 +106,70 @@ function registrarPruebas() {
     assertIgual(verificarBoleto(b, '', 'portal', AHORA).code, 'BOLETO_INVALIDO');
   });
 
+  // --- Acceso -------------------------------------------------------------
+
+  var FILA_CHIAUTLA = { usuario: 'chiautla', nombre: 'CHIAUTLA', rol: 'COORDINACION',
+                        coordinacion_id: 'COOR01', sal: 's1',
+                        huella: huellaContrasena('s1', 'chiautla26'), activo: 'TRUE' };
+
+  prueba('bloqueo: cuatro intentos no, cinco sí', function () {
+    assertIgual([_debeBloquear(4), _debeBloquear(5)], [false, true]);
+  });
+
+  prueba('acceso: usuario inexistente da el error genérico', function () {
+    assertIgual(_resultadoAcceso(null, 'x'),
+                { ok: false, code: 'CREDENCIALES_INVALIDAS',
+                  message: 'Usuario o contraseña incorrectos.' });
+  });
+
+  prueba('acceso: cuenta inactiva da el MISMO error que inexistente', function () {
+    var inactiva = JSON.parse(JSON.stringify(FILA_CHIAUTLA));
+    inactiva.activo = 'FALSE';
+    assertIgual(_resultadoAcceso(inactiva, 'chiautla26'), _resultadoAcceso(null, 'x'));
+  });
+
+  prueba('acceso: contraseña equivocada da el MISMO error', function () {
+    assertIgual(_resultadoAcceso(FILA_CHIAUTLA, 'chiautla27'), _resultadoAcceso(null, 'x'));
+  });
+
+  prueba('acceso: correcto devuelve la cuenta sin sal ni huella', function () {
+    assertIgual(_resultadoAcceso(FILA_CHIAUTLA, 'chiautla26'),
+                { ok: true, usuario: { usuario: 'chiautla', nombre: 'CHIAUTLA',
+                                       coordinacion_id: 'COOR01' } });
+  });
+
+  prueba('buscar usuario ignora mayúsculas y espacios', function () {
+    assertIgual(_buscarUsuario([FILA_CHIAUTLA], '  ChiAutla ').usuario, 'chiautla');
+    assertIgual(_buscarUsuario([FILA_CHIAUTLA], 'otra'), null);
+  });
+
+  prueba('cuenta del boleto: vigente y activa', function () {
+    assertIgual(_cuentaDelBoleto({ ok: true, usuario: 'chiautla', coordinacion_id: 'COOR01' },
+                                 [FILA_CHIAUTLA]),
+                { ok: true, usuario: { usuario: 'chiautla', nombre: 'CHIAUTLA',
+                                       coordinacion_id: 'COOR01' } });
+  });
+
+  prueba('cuenta del boleto: dada de baja después de entrar', function () {
+    var baja = JSON.parse(JSON.stringify(FILA_CHIAUTLA));
+    baja.activo = '';
+    assertIgual(_cuentaDelBoleto({ ok: true, usuario: 'chiautla', coordinacion_id: 'COOR01' },
+                                 [baja]).code, 'BOLETO_INVALIDO');
+  });
+
+  prueba('cuenta del boleto: la coordinación de la cuenta cambió', function () {
+    assertIgual(_cuentaDelBoleto({ ok: true, usuario: 'chiautla', coordinacion_id: 'COOR09' },
+                                 [FILA_CHIAUTLA]).code, 'BOLETO_INVALIDO');
+  });
+
+  prueba('cuenta del boleto: un boleto vencido pasa tal cual', function () {
+    var vencido = { ok: false, code: 'BOLETO_VENCIDO', message: 'Su acceso venció. Vuelva a entrar.' };
+    assertIgual(_cuentaDelBoleto(vencido, [FILA_CHIAUTLA]), vencido);
+  });
+
+  prueba('bitácora: una acción inventada no se escribe', function () {
+    assertLanza(function () { registrarEvento('chiautla', 'BORRAR_TODO', ''); }, 'ACCION_INVALIDA');
+  });
+
   // Las tareas siguientes agregan sus pruebas aquí, antes de esta línea.
 }
