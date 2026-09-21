@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Los enlaces llevan boletos: que no se filtren en el Referer. -->
+  <meta name="referrer" content="no-referrer">
+  <title>Promoción de la Salud</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <main>
+    <section id="acceso" hidden>
+      <h1>Promoción de la Salud</h1>
+      <p class="sub">Jurisdicción Sanitaria XIX Texcoco</p>
+      <form id="form-acceso" novalidate>
+        <label for="usuario">Usuario</label>
+        <input id="usuario" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+        <label for="contrasena">Contraseña</label>
+        <input id="contrasena" type="password" autocomplete="current-password" required>
+        <button id="btn-entrar" type="submit">Entrar</button>
+      </form>
+      <p id="error-acceso" role="alert"></p>
+    </section>
+
+    <section id="portal" hidden>
+      <header>
+        <div>
+          <div id="identidad"></div>
+          <div id="periodo" class="sub"></div>
+        </div>
+        <button id="btn-salir" type="button">Salir</button>
+      </header>
+      <div id="apartados"></div>
+      <p id="sin-destinos" hidden>Todavía no hay capturadores asignados a su coordinación.</p>
+    </section>
+
+    <p id="cargando" role="status">Cargando…</p>
+  </main>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

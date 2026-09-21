@@ -1,0 +1,44 @@
+:root {
+  --guinda: #9F2241;
+  --borde: #d8d8d8;
+  --texto: #1a1a1a;
+  --suave: #666;
+  --fondo: #fff;
+  --verde-fondo: #e3f5e6; --verde: #1e6b2e;
+  --ambar-fondo: #fff4d6; --ambar: #8a6600;
+  --gris-fondo: #eee;     --gris: #555;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; color: var(--texto); background: var(--fondo); }
+main { max-width: 40rem; margin: 0 auto; padding: 1rem 1rem 3rem; }
+h1 { color: var(--guinda); margin: 1.5rem 0 .25rem; font-size: 1.5rem; }
+.sub { color: var(--suave); margin: 0 0 1rem; font-size: .9rem; }
+
+#form-acceso label { display: block; margin: .75rem 0 .25rem; font-weight: 600; }
+#form-acceso input { width: 100%; min-height: 44px; font-size: 1rem; padding: 0 .6rem;
+                     border: 1px solid var(--borde); border-radius: 4px; }
+button { min-height: 44px; font-size: 1rem; border-radius: 4px; cursor: pointer; }
+#btn-entrar { width: 100%; margin-top: 1.25rem; background: var(--guinda); color: #fff; border: none; }
+#btn-entrar:disabled { opacity: .6; }
+#error-acceso { color: var(--guinda); min-height: 1.5em; }
+
+header { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+         padding: .75rem 0; border-bottom: 2px solid var(--guinda); }
+#identidad { font-weight: 700; overflow-wrap: anywhere; }
+#periodo { margin: 0; }
+#btn-salir { background: none; border: 1px solid var(--borde); padding: 0 1rem; flex-shrink: 0; }
+
+.apartado h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;
+               color: var(--suave); margin: 1.5rem 0 .5rem; }
+.destinos { list-style: none; margin: 0; padding: 0; }
+.destino a, .destino .sin-enlace { display: flex; align-items: center; justify-content: space-between;
+                                   gap: .75rem; min-height: 56px; padding: .6rem .8rem;
+                                   border: 1px solid var(--borde); border-radius: 6px;
+                                   margin-bottom: .5rem; color: inherit; text-decoration: none; }
+.destino a:active { background: #f7f7f7; }
+.destino .nombre { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.destino .sin-enlace { color: var(--suave); }
+.estado { flex-shrink: 0; font-size: .8rem; font-weight: 600; padding: .2rem .5rem; border-radius: 4px; }
+.estado-REPORTADO { background: var(--verde-fondo); color: var(--verde); }
+.estado-PENDIENTE { background: var(--ambar-fondo); color: var(--ambar); }
+.estado-NO_SE_SABE { background: var(--gris-fondo); color: var(--gris); }
