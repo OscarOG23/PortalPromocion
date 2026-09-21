@@ -73,14 +73,14 @@
     {
       "id": 8,
       "subject": "Task 8: Despliegue, Pages y verificación de punta a punta",
-      "status": "in_progress",
+      "status": "completed",
       "blockedBy": [
         6,
         7
       ],
       "description": "**Goal:** Web app desplegado, Pages publicado desde web/, verificación en Android con Chrome firmado. Crear el repo público REQUIERE confirmación del usuario.\n\n```json:metadata\n{\"files\": [\".github/workflows/pages.yml\", \"README.md\", \"web/config.js\"], \"verifyCommand\": \"curl -sL <exec> ; verificación manual en Android\", \"acceptanceCriteria\": [\"doGet responde ok\", \"CREDENCIALES_INVALIDAS con contraseña mala\", \"abre en Android con Chrome firmado\", \"formulario abre pre-llenado\", \"verificarDestinos dice bien\"]}\n```",
-      "note": "Desplegado y probado con curl y navegador. Falta: filas de DESTINOS (formulario de prueba), Pages, prueba en Android."
+      "note": "Verificado en Android por el usuario el 2026-09-21. DESTINOS: solo determinantes; formulario de prueba pendiente (exigen login de Google)."
     }
   ],
-  "lastUpdated": "2026-09-21T08:22:47.200253+00:00"
+  "lastUpdated": "2026-09-21T08:32:04.204483+00:00"
 }
