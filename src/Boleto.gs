@@ -4,10 +4,11 @@
 // Formato (es contrato con los capturadores hermanos, que lo verificarán con
 // el mismo secreto):
 //
-//   base64url(JSON {c, u, d, v}) + '.' + base64url(HMAC-SHA256(cuerpo, secreto))
+//   base64url(JSON {c, u, d, v, n}) + '.' + base64url(HMAC-SHA256(cuerpo, secreto))
 //
 //   c = coordinacion_id   u = usuario   d = destino_id ('portal' para la sesión)
 //   v = vencimiento, en milisegundos desde época
+//   n = nombre de la coordinación (opcional; los verificadores viejos lo ignoran)
 //
 // Sin relleno '=': el boleto viaja en una URL y '=' ahí es ambiguo.
 
@@ -41,9 +42,11 @@ function _mismaCadena(a, b) {
   return diferencia === 0;
 }
 
-function emitirBoleto(usuario, coordinacionId, destino, vence, secreto) {
+function emitirBoleto(usuario, coordinacionId, destino, vence, secreto, nombre) {
   if (!secreto) throw new Error('SIN_SECRETO: falta SECRETO_BOLETOS en las propiedades del script.');
-  var cuerpo = _b64(JSON.stringify({ c: coordinacionId, u: usuario, d: destino, v: vence }));
+  var datos = { c: coordinacionId, u: usuario, d: destino, v: vence };
+  if (nombre) datos.n = nombre;
+  var cuerpo = _b64(JSON.stringify(datos));
   return cuerpo + '.' + _firma(cuerpo, secreto);
 }
 
@@ -61,9 +64,11 @@ function verificarBoleto(boleto, secreto, destino, ahora) {
   try { datos = JSON.parse(_desdeB64(partes[0])); } catch (e) { return invalido; }
   if (!datos || typeof datos.c !== 'string' || !datos.c ||
       typeof datos.u !== 'string' || !datos.u || datos.d !== destino) return invalido;
+  if (datos.n !== undefined && typeof datos.n !== 'string') return invalido;
 
   if (!(Number(datos.v) > Number(ahora))) {
     return { ok: false, code: 'BOLETO_VENCIDO', message: 'Su acceso venció. Vuelva a entrar.' };
   }
-  return { ok: true, coordinacion_id: datos.c, usuario: datos.u, destino: datos.d, vence: datos.v };
+  return { ok: true, coordinacion_id: datos.c, usuario: datos.u, destino: datos.d, vence: datos.v,
+           nombre: datos.n || '' };
 }

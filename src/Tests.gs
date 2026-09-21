@@ -57,7 +57,19 @@ function registrarPruebas() {
     assertIgual(/^[A-Za-z0-9_.-]+$/.test(b), true, 'seguro para URL');
     assertIgual(verificarBoleto(b, SECRETO, 'sips', AHORA),
                 { ok: true, coordinacion_id: 'COOR07', usuario: 'ñandú',
-                  destino: 'sips', vence: LUEGO });
+                  destino: 'sips', vence: LUEGO, nombre: '' });
+  });
+
+  prueba('boleto: lleva el nombre de la coordinación firmado', function () {
+    var b = emitirBoleto('ceapssantamariachimalhuacan', 'COOR14', 'mensual_coordinacion', LUEGO,
+                          SECRETO, 'CEAPS SANTA MARÍA CHIMALHUACAN');
+    assertIgual(verificarBoleto(b, SECRETO, 'mensual_coordinacion', AHORA).nombre,
+                'CEAPS SANTA MARÍA CHIMALHUACAN');
+
+    var falso = _b64(JSON.stringify({ c: 'COOR14', u: 'x', d: 'mensual_coordinacion', v: LUEGO,
+                                       n: 5 }));
+    assertIgual(verificarBoleto(falso + '.' + _firma(falso, SECRETO), SECRETO,
+                                 'mensual_coordinacion', AHORA).code, 'BOLETO_INVALIDO');
   });
 
   prueba('boleto: otro secreto no lo abre', function () {

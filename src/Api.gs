@@ -68,7 +68,7 @@ function contextoDeBoleto(boleto) {
     .map(function (d) {
       var id = String(d.destino_id).trim();
       var boletoDestino = d.clase !== CLASES_DESTINO.FORMULARIO && !problemasDeDestino(d).length
-        ? emitirBoleto(u.usuario, u.coordinacion_id, id, vence, secreto) : '';
+        ? emitirBoleto(u.usuario, u.coordinacion_id, id, vence, secreto, u.nombre) : '';
       return {
         destino_id: id,
         nombre: d.nombre,
