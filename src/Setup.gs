@@ -211,3 +211,33 @@ function verificarDestinos() {
   invalidarCatalogo(HOJAS.DESTINOS);
   Logger.log(filas.length + ' destinos revisados');
 }
+
+// Los capturadores que ya saben recibir a la máscara. Correr desde el botón
+// Ejecutar: agrega solo las filas que falten (compara por destino_id) y no
+// toca las que ya existan, aunque se hayan editado a mano en la hoja.
+var DESTINOS_CONOCIDOS = [
+  { destino_id: 'determinantes', nombre: 'Talleres por Determinantes', apartado: 'Reporte mensual',
+    clase: 'HERMANO_CON_CONTRASENA',
+    url: 'https://script.google.com/macros/s/AKfycbzpwr_wfBevrI-UkrUSvrFOXwXKu2qqGCL_OQWa5uZ3DGivT7CSM3h7SEDsRLH8_sOP/exec',
+    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NINGUNA', orden: 1, activo: 'TRUE' },
+  { destino_id: 'mensual_coordinacion', nombre: 'Reporte Mensual de Coordinación', apartado: 'Reporte mensual',
+    clase: 'HERMANO_CON_CONTRASENA',
+    url: 'https://script.google.com/macros/s/AKfycbziZ5yNV_uqGtnkXIprgvT4FyijVI6DojPQ39HQ4VBkIW7jcVwQ2qod-AT1HHUxu6AYog/exec',
+    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NINGUNA', orden: 2, activo: 'TRUE' },
+  // SIPS no tiene acceso: cualquiera elige cualquier coordinación. El nombre
+  // solo la deja preseleccionada; por eso va en claro y no se verifica boleto.
+  { destino_id: 'sips', nombre: 'SIPS — Fechas a Conmemorar', apartado: 'Reporte mensual',
+    clase: 'HERMANO_SIN_CONTRASENA',
+    url: 'https://script.google.com/macros/s/AKfycbxiwICPr2ZpBUtKgFudTdLhzctrGnuQmSRZlIuSYd-t-oSJTQU74fi7yjsV4fMlkyqL/exec',
+    aplica_a: 'TODAS', param_identidad: 'coordinacion', valor_identidad: 'NOMBRE', sonda: 'NINGUNA', orden: 3, activo: 'TRUE' }
+];
+
+function sembrarDestinosConocidos() {
+  var existentes = {};
+  leerTabla(HOJAS.DESTINOS).forEach(function (d) { existentes[String(d.destino_id).trim()] = true; });
+  var faltan = DESTINOS_CONOCIDOS.filter(function (d) { return !existentes[d.destino_id]; });
+  if (faltan.length) escribirFilas(HOJAS.DESTINOS, faltan);
+  Logger.log(faltan.length ? 'agregados: ' + faltan.map(function (d) { return d.destino_id; }).join(', ')
+                           : 'no faltaba ninguno');
+  verificarDestinos();
+}
