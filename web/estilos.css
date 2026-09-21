@@ -611,13 +611,99 @@ a.tarjeta:hover .flecha { color: var(--acento-texto); transform: translate(2px, 
 
 /* ------------------------------------------------------ Pantallas grandes */
 
+/* Tableta: la lista agrupada se abre en una cuadrícula de tarjetas sueltas. */
 @media (min-width: 640px) {
-  main { padding-left: 24px; padding-right: 24px; }
+  main { max-width: 52rem; padding-left: 24px; padding-right: 24px; }
   .cabecera { margin: 16px 0 0; border-radius: var(--r-xl); padding: 18px 28px 30px; }
   .esq-cabecera { margin: 16px 0 0; border-radius: var(--r-xl); }
   .resumen, .esq-resumen { margin-left: 16px; margin-right: 16px; }
+  .vista-acceso { max-width: 28rem; margin: 0 auto; }
   .tarjeta-acceso { padding: 40px 40px 32px; }
   #identidad { font-size: 34px; }
+
+  .destinos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .destino + .destino .tarjeta::before { display: none; }
+  .destino { display: flex; }
+  .tarjeta {
+    flex: 1;
+    min-height: 104px;
+    padding: 18px;
+    border-radius: var(--r-lg);
+    background: var(--superficie);
+    box-shadow: var(--sombra-tarjeta);
+    transition: transform var(--t-base) var(--ease-apple), box-shadow var(--t-base) var(--ease-apple),
+                background-color var(--t-toque);
+  }
+  a.tarjeta:hover { background: var(--superficie); transform: translateY(-3px); box-shadow: var(--sombra-flotante); }
+  a.tarjeta:active { transform: translateY(-1px) scale(0.99); }
+  a.tarjeta:focus-visible { box-shadow: var(--anillo); }
+  .esq-tarjeta { display: inline-block; width: calc(50% - 7px); height: 104px; }
+  .esq-tarjeta + .esq-tarjeta { margin-left: 14px; }
+}
+
+/* PC: la cabecera se vuelve un tablero. El resumen se acomoda a la derecha,
+   dentro de la cabecera, y los capturadores van de tres en tres. */
+@media (min-width: 1024px) {
+  main { max-width: 72rem; padding-left: 32px; padding-right: 32px; }
+
+  .vista-portal {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24rem;
+    column-gap: 24px;
+  }
+  .vista-portal > * { grid-column: 1 / -1; }
+
+  .cabecera {
+    grid-row: 1;
+    margin-top: 24px;
+    min-height: 236px;
+    padding: 24px 36px 34px;
+  }
+  .cabecera-barra { margin-bottom: 26px; }
+  #identidad { font-size: 42px; letter-spacing: -0.028em; }
+
+  .vista-portal > .resumen {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: end;
+    z-index: 1;
+    margin: 0 28px 30px 0;
+    padding: 18px 20px;
+    background: rgba(255, 255, 255, 0.96);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+  /* El texto de la cabecera no se mete debajo del resumen, aunque el nombre
+     de la coordinación sea largo. */
+  .cabecera-sobre, #identidad, .pastilla { max-width: calc(100% - 24rem - 12px); }
+  .cabecera { min-height: 268px; }
+
+  .apartado { margin-top: 36px; }
+  .apartado h2 { margin-left: 4px; }
+  .destinos { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .tarjeta { min-height: 118px; padding: 20px; }
+  .icono-destino { width: 48px; height: 48px; font-size: 24px; border-radius: 14px; }
+  .nombre { font-size: 17px; }
+
+  .vista-cargando { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .esq-cabecera { grid-column: 1 / -1; height: 236px; margin: 24px 0 0; }
+  .esq-resumen { display: none; }
+  .esq-tarjeta, .esq-tarjeta + .esq-tarjeta { width: auto; height: 118px; margin: 18px 0 0; }
+  .esq-resumen + .esq-tarjeta { margin-top: 18px; }
+
+  .tarjeta-acceso h1 { font-size: 32px; }
+}
+
+@media (min-width: 1024px) and (prefers-color-scheme: dark) {
+  .vista-portal > .resumen { background: rgba(28, 28, 30, 0.9); }
 }
 
 /* --------------------------------------------------- Movimiento reducido */
