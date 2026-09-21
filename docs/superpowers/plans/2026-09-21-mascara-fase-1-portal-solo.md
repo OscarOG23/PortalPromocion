@@ -17,7 +17,7 @@
 1. **Contraseña deducible `usuario + '26'`, igual que Determinantes.** Decisión explícita del usuario (2026-09-21), tomada sabiendo que la página es pública en GitHub Pages: ya no existe la barrera de «no publicar la URL». Cualquiera que conozca el nombre de una coordinación y encuentre la página puede entrar como ella a todos sus capturadores. Esto se deja escrito en el código (`Usuarios.gs`) y en el README. Si algún día se endurece, se cambia `contrasenaDeUsuario`, se corre `crearCuentasDeCoordinaciones()` y se reparten las nuevas: nada más depende de eso.
 2. **La sesión del portal ES un boleto, sin estado en el servidor.** Determinantes guarda el testigo en caché + propiedades; aquí basta la firma: `iniciarSesion` emite un boleto para el destino `portal` con vida de 30 días, y cada llamada lo verifica. Consecuencias:
    - «Salir» borra el boleto del teléfono; el servidor no guarda nada que borrar.
-   - Para dejar fuera a una cuenta **sin esperar 30 días**: poner `activo = FALSE` en `USUARIOS` (se comprueba en cada llamada, pero contra la caché de 30 min de `leerCatalogo`; al instante con `invalidarCatalogo('USUARIOS')`), o rotar el secreto (`generarSecretoDeBoletos(true)`), que corta a todas.
+   - Para dejar fuera a una cuenta **sin esperar 30 días**: poner `activo = FALSE` en `USUARIOS` (se comprueba en cada llamada, pero contra la caché de 30 min de `leerCatalogo`; al instante con `invalidarCacheDeUsuarios()`), o rotar el secreto (`generarSecretoDeBoletos(true)`), que corta a todas.
 3. **Cada destino recibe su propio boleto de 8 horas**, marcado con su `destino_id`. El de 30 días nunca sale del portal: el de un destino viaja en la URL y queda en historiales. Un boleto de SIPS no abre Determinantes.
 4. **Formato del boleto** (lo tendrán que verificar los hermanos en la Fase 2, así que es contrato):
    `base64url(JSON {c, u, d, v}) + '.' + base64url(HMAC-SHA256(cuerpo, secreto))`, sin relleno `=`.
@@ -1916,7 +1916,7 @@ Una fila en `DESTINOS` y luego `verificarDestinos()` en el editor. No se toca c�
   Quien sepa el nombre de una coordinación puede entrar como ella a todos sus capturadores.
   Para endurecerla: cambiar `contrasenaDeUsuario` en `src/Usuarios.gs` y correr `crearCuentasDeCoordinaciones()`.
 - **La sesión dura 30 días y vive en el teléfono.** Para cortar una cuenta: `activo = FALSE` en `USUARIOS`
-  (surte efecto al vencer la caché de 30 min, o al instante con `invalidarCatalogo('USUARIOS')` en el editor).
+  (surte efecto al vencer la caché de 30 min, o al instante con `invalidarCacheDeUsuarios()` en el editor).
   Para cortar a todas: `generarSecretoDeBoletos(true)`.
 - **El bloqueo por intentos se puede usar para molestar.** Con la contraseña deducible, forzarla no le sirve a nadie;
   lo que sí se puede es teclear 5 contraseñas malas con el usuario de otra coordinación y dejarla fuera 15 minutos.

@@ -40,12 +40,47 @@ curl -s "$L"
   Quien sepa el nombre de una coordinación puede entrar como ella a todos sus capturadores.
   Para endurecerla: cambiar `contrasenaDeUsuario` en `src/Usuarios.gs` y correr `crearCuentasDeCoordinaciones()`.
 - **La sesión dura 30 días y vive en el teléfono.** Para cortar una cuenta: `activo = FALSE` en `USUARIOS`
-  (surte efecto al vencer la caché de 30 min, o al instante con `invalidarCatalogo('USUARIOS')` en el editor).
-  Para cortar a todas: `generarSecretoDeBoletos(true)`.
+  (surte efecto al vencer la caché de 30 min, o al instante con `invalidarCacheDeUsuarios()` en el editor).
+  Para cortar a todas: `generarSecretoDeBoletos(true)` (ver «Funciones de emergencia» abajo).
 - **El bloqueo por intentos se puede usar para molestar.** Con la contraseña deducible, forzarla no le sirve a nadie;
   lo que sí se puede es teclear 5 contraseñas malas con el usuario de otra coordinación y dejarla fuera 15 minutos.
+
+## Funciones de emergencia (correr a mano en el editor)
+
+El botón Ejecutar del editor de Apps Script llama a la función seleccionada **sin argumentos**. Para las que
+sí los llevan, se escribe una función temporal que la envuelve, se corre esa, y se borra:
+
+- **Dar de baja una cuenta al instante**, sin esperar a que venza la caché de 30 min:
+  `invalidarCacheDeUsuarios()` (esta sí se corre directo, no lleva argumentos).
+- **Cortar el acceso a TODAS las cuentas** (rota el secreto de boletos; en la Fase 2 hay que avisar a los
+  hermanos, que también lo necesitan):
+  ```js
+  function tmp() { generarSecretoDeBoletos(true); }
+  ```
+  Correr `tmp`, revisar el registro y borrar la función.
+- **Restablecer la contraseña de una cuenta** (por si su huella se corrompió; la contraseña sigue siendo
+  usuario + `26`):
+  ```js
+  function tmp() { restablecerContrasena('usuario'); }
+  ```
+  Correr `tmp`, revisar el registro y borrar la función.
 
 ## Secreto de boletos
 
 Vive en las propiedades del script (`SECRETO_BOLETOS`), nunca en la hoja ni en el repo. En la Fase 2 cada
 capturador hermano recibirá una copia para verificar los boletos.
+
+## Instalación desde cero
+
+1. `clasp create --type sheets --rootDir src` — crea la hoja y el proyecto de Apps Script ligados.
+2. `clasp create` sobrescribe `src/appsscript.json`: restaurarlo con `git checkout -- src/appsscript.json`.
+3. En `.clasp.json`, agregar `"filePushOrder": ["src/Config.gs", "src/Boleto.gs"]` (ambos los usan otros
+   archivos que cargan después por orden alfabético).
+4. `clasp push --force`.
+5. En el editor de Apps Script, correr en este orden: `setupDatabase`, `cargarUniverso`,
+   `verificarCatalogos`, `crearCuentasDeCoordinaciones`, `generarSecretoDeBoletos`, `runAllTests`.
+   La primera vez que se corre algo, Apps Script pide autorizar permisos: hay que aceptarlos ahí mismo. Si
+   se saltan, `/exec` contesta una página HTML de autorización en vez de JSON, y el cliente dice
+   «No se pudo conectar» sin más pista.
+6. `clasp create-deployment` y poner la URL que da (termina en `/exec`) en `web/config.js`.
+7. En GitHub, Settings → Pages → Source: **GitHub Actions** (la publica `.github/workflows/pages.yml`).

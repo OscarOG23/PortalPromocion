@@ -1,16 +1,20 @@
 // Funciones para correr A MANO desde el editor de Apps Script. Ninguna se
 // llama desde la API.
 
-var ESQUEMA = [
-  [HOJAS.CONFIG, ['clave', 'valor']],
-  [HOJAS.COORDINACIONES, ['coordinacion_id', 'nombre', 'municipio_principal', 'activo', 'orden']],
-  [HOJAS.UNIDADES, ['unidad_id', 'clues', 'nombre_unidad', 'municipio', 'coordinacion_id',
-                    'responsable', 'activo']],
-  [HOJAS.USUARIOS, ['usuario', 'nombre', 'rol', 'coordinacion_id', 'sal', 'huella', 'activo']],
-  [HOJAS.DESTINOS, ['destino_id', 'nombre', 'apartado', 'clase', 'url', 'aplica_a',
-                    'param_identidad', 'valor_identidad', 'sonda', 'orden', 'activo']],
-  [HOJAS.AUDITORIA, ['timestamp', 'usuario', 'accion', 'detalle']]
-];
+// Función en vez de var: setupDatabase() es la única que la usa, y así
+// Setup.gs no depende de en qué orden cargue Apps Script los archivos .gs.
+function _esquema() {
+  return [
+    [HOJAS.CONFIG, ['clave', 'valor']],
+    [HOJAS.COORDINACIONES, ['coordinacion_id', 'nombre', 'municipio_principal', 'activo', 'orden']],
+    [HOJAS.UNIDADES, ['unidad_id', 'clues', 'nombre_unidad', 'municipio', 'coordinacion_id',
+                      'responsable', 'activo']],
+    [HOJAS.USUARIOS, ['usuario', 'nombre', 'rol', 'coordinacion_id', 'sal', 'huella', 'activo']],
+    [HOJAS.DESTINOS, ['destino_id', 'nombre', 'apartado', 'clase', 'url', 'aplica_a',
+                      'param_identidad', 'valor_identidad', 'sonda', 'orden', 'activo']],
+    [HOJAS.AUDITORIA, ['timestamp', 'usuario', 'accion', 'detalle']]
+  ];
+}
 
 var CONFIG_INICIAL = [
   ['jurisdiccion', 'JURISDICCIÓN SANITARIA XIX TEXCOCO'],
@@ -20,7 +24,7 @@ var CONFIG_INICIAL = [
 
 function setupDatabase() {
   var ss = SpreadsheetApp.getActive();
-  ESQUEMA.forEach(function (par) {
+  _esquema().forEach(function (par) {
     var nombre = par[0], encabezados = par[1];
     if (ss.getSheetByName(nombre)) {
       Logger.log(nombre + ' — ya existía');
@@ -84,9 +88,11 @@ function verificarCatalogos() {
              ' unidades huérfanas');
 }
 
-// Crea una cuenta por coordinación. CORRERLA DE NUEVO SUSTITUYE TODAS: como la
-// contraseña se deriva del usuario (Usuarios.gs), no cambia entre corridas
-// salvo que cambie el nombre de la coordinación.
+// Crea una cuenta por coordinación. CORRERLA DE NUEVO NO reactiva una baja:
+// si una cuenta ya existía, conserva su `activo` tal como estaba (una fila
+// nueva sí nace activa). Como la contraseña se deriva del usuario
+// (Usuarios.gs), no cambia entre corridas salvo que cambie el nombre de la
+// coordinación.
 function crearCuentasDeCoordinaciones() {
   var hoja = SpreadsheetApp.getActive().getSheetByName(HOJAS.USUARIOS);
   if (!hoja) throw new Error('Falta la hoja USUARIOS. Ejecute setupDatabase() primero.');
@@ -112,12 +118,32 @@ function crearCuentasDeCoordinaciones() {
   });
   if (choques.length) throw new Error('Coordinaciones con el mismo usuario: ' + choques.join(', '));
 
+  // Cuentas actuales por usuario, para no resucitar una baja: si ya existía
+  // y su activo no era un sí explícito, se conserva tal cual.
+  var actuales = {};
+  leerTabla(HOJAS.USUARIOS).forEach(function (f) {
+    actuales[String(f.usuario || '').trim().toLowerCase()] = f;
+  });
+
+  var vistosAhora = {};
   var filas = coords.map(function (c) {
     var usuario = usuarioDeCoordinacion(c.nombre);
+    vistosAhora[usuario] = true;
+    var previa = actuales[usuario];
     var sal = generarSal();
+    var activo = previa ? previa.activo : 'TRUE';
+    if (previa) {
+      if (!esVerdadero(activo)) Logger.log('se conserva la baja de ' + usuario);
+    } else {
+      Logger.log('cuenta nueva: ' + usuario);
+    }
     return { usuario: usuario, nombre: c.nombre, rol: 'COORDINACION',
              coordinacion_id: c.coordinacion_id, sal: sal,
-             huella: huellaContrasena(sal, contrasenaDeUsuario(usuario)), activo: 'TRUE' };
+             huella: huellaContrasena(sal, contrasenaDeUsuario(usuario)), activo: activo };
+  });
+
+  Object.keys(actuales).forEach(function (usuario) {
+    if (!vistosAhora[usuario]) Logger.log('cuenta eliminada: ' + usuario);
   });
 
   reemplazarFilas(HOJAS.USUARIOS, filas);
@@ -126,6 +152,13 @@ function crearCuentasDeCoordinaciones() {
   Logger.log('=== La contraseña de cada quien es su usuario + "26" (chiautla / chiautla26) ===');
   filas.forEach(function (f) { Logger.log(f.usuario + '  ' + contrasenaDeUsuario(f.usuario) + '   ' + f.nombre); });
   Logger.log('=== ' + filas.length + ' cuentas creadas ===');
+}
+
+// Para correr desde el botón Ejecutar: una baja en USUARIOS surte efecto al
+// instante en vez de esperar a que venza la caché de 30 minutos.
+function invalidarCacheDeUsuarios() {
+  invalidarCatalogo(HOJAS.USUARIOS);
+  Logger.log('caché de USUARIOS invalidada');
 }
 
 // Da una sal nueva a UNA cuenta sin tocar las demás. La contraseña sigue
