@@ -63,8 +63,8 @@ maneja fotos de personas y la referencia del formato.
 ## 3. Captura (pantalla del hermano, pensada para teléfono)
 
 - Selector de mes (por defecto: mes anterior; desde el día 25, el mes en curso, igual que SIPS).
-- Lista de las unidades **activas** de la coordinación del boleto (`CAT_UNIDADES`,
-  cargado de `SIPS/unidades_2026.json`). Cada una muestra «Capturada» o «+ Capturar».
+- Lista de las unidades **activas** de la coordinación del boleto, del catálogo
+  `Catalogos.generado.gs` de la máscara (copia literal: mismos `COORxx` que trae el boleto en `c`). Cada una muestra «Capturada» o «+ Capturar».
 - Al abrir una unidad: los 12 números de la tabla §1 y de 1 a 3 fotos.
 - Validación dura: enteros ≥ 0, obligatorios (vacío = 0 no se asume: se pide).
 - Alertas que **no bloquean**: actividad > 0 con asistentes H+M = 0; asistentes > 0
@@ -85,7 +85,7 @@ maneja fotos de personas y la referencia del formato.
   Carpeta: `Actividad Física/<AAAA-MM>/<Coordinación>/<Unidad>/`.
 - `CIERRES_AF`: `anio`, `mes`, `coordinacion_id`, `estado` (`CERRADO`/`ABIERTO`),
   `usuario`, `fecha`.
-- `CAT_UNIDADES`, `AUDITORIA`. La plantilla del formato es un `.xlsx` en Drive (§5).
+- `AUDITORIA`. Las unidades vienen del código (§3); la plantilla del formato va embebida (§5).
 - Nunca se usa el número de fila como identificador.
 
 ## 5. El Excel jurisdiccional
@@ -106,8 +106,9 @@ se arma editando el `.xlsx` original, no convirtiéndolo.**
 
 ### Cómo se arma
 
-La plantilla es el `.xlsx` de referencia **sin las 6 fotos** (solo logos), guardado en Drive
-(`Actividad Física/Plantilla/COLATERAL_AF_PLANTILLA.xlsx`). En Apps Script:
+La plantilla es el `.xlsx` de referencia **sin las 6 fotos** (solo logos), embebida en base64 en
+`Plantilla.generado.gs` (la genera `tools/hacer-plantilla.js`; no depende de un archivo en Drive).
+En Apps Script:
 
 1. `Utilities.unzip` de la plantilla.
 2. `sheet1.xml`: `K7` = serial de fecha del primer día del mes; una fila `<row>` por unidad
