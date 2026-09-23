@@ -12,3 +12,6 @@ Desktop.ini
 
 # Temporales de Office
 ~$*
+
+# Formatos de referencia (llevan fotos de personas; el repo es publico)
+*.xlsx
