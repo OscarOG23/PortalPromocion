@@ -118,9 +118,14 @@ En Apps Script:
 3. Se quita `calcChain.xml` (y su relación y tipo de contenido) y se marca
    `fullCalcOnLoad="1"` en `workbook.xml`, para que Excel recalcule al abrir.
 4. Fotos: cada una entra como `xl/media/fotoN.jpeg` con su relación en
-   `drawing1.xml.rels` y un `twoCellAnchor` en `drawing1.xml`, en rejilla debajo del TOTAL
-   (2 filas de separación), en el orden de la tabla. El nombre de la unidad va en la celda
-   de arriba de su grupo, con el estilo de los datos. Se agrega `jpeg` a `[Content_Types].xml`.
+   `drawing1.xml.rels` y un `oneCellAnchor` (col + colOff) en `drawing1.xml`. Van en
+   **repisas** debajo del TOTAL, como el collage de la referencia: 9 cm de alto, de izquierda a
+   derecha a lo ancho de A..M, en el orden de la tabla; las unidades comparten repisa. Arriba
+   de cada repisa, una fila de etiquetas: el nombre de la unidad en la columna donde empieza su
+   primera foto de esa repisa, con el estilo de `A7` (negritas, sin borde). Se agrega `jpeg` a
+   `[Content_Types].xml`.
+   Impresión: con hasta 2 repisas queda igual que la referencia (todo en una hoja); con más,
+   se agrega `fitToHeight="0"` (ajustar al ancho, varias hojas) para que la tabla no se encoja.
 5. `Utilities.zip` → `.xlsx` en `Actividad Física/Colaterales/`
    `08 COLATERAL DE AF <AAAA> - <MES>.xlsx` (reemplaza el del mismo mes) y muestra el enlace.
 
