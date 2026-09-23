@@ -229,7 +229,11 @@ var DESTINOS_CONOCIDOS = [
   { destino_id: 'sips', nombre: 'SIPS — Fechas a Conmemorar', apartado: 'Reporte mensual',
     clase: 'HERMANO_SIN_CONTRASENA',
     url: 'https://script.google.com/macros/s/AKfycbxiwICPr2ZpBUtKgFudTdLhzctrGnuQmSRZlIuSYd-t-oSJTQU74fi7yjsV4fMlkyqL/exec',
-    aplica_a: 'TODAS', param_identidad: 'coordinacion', valor_identidad: 'NOMBRE', sonda: 'NATIVA', orden: 3, activo: 'TRUE' }
+    aplica_a: 'TODAS', param_identidad: 'coordinacion', valor_identidad: 'NOMBRE', sonda: 'NATIVA', orden: 3, activo: 'TRUE' },
+  { destino_id: 'actividad_fisica', nombre: 'Reporte de Actividad Física', apartado: 'Reporte mensual',
+    clase: 'HERMANO_CON_CONTRASENA',
+    url: 'https://script.google.com/macros/s/AKfycby-mX_9mqg4rBXYb9uPj9bJHuVao8D2JCByOpqkup9Q2_lvMOpnLT7GTvKgekSEAs6I/exec',
+    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 4, activo: 'TRUE' }
 ];
 
 function sembrarDestinosConocidos() {
