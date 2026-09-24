@@ -4,11 +4,17 @@
 // Formato (es contrato con los capturadores hermanos, que lo verificarán con
 // el mismo secreto):
 //
-//   base64url(JSON {c, u, d, v, n}) + '.' + base64url(HMAC-SHA256(cuerpo, secreto))
+//   base64url(JSON {c, u, d, v, n, r, x}) + '.' + base64url(HMAC-SHA256(cuerpo, secreto))
 //
 //   c = coordinacion_id   u = usuario   d = destino_id ('portal' para la sesión)
 //   v = vencimiento, en milisegundos desde época
-//   n = nombre de la coordinación (opcional; los verificadores viejos lo ignoran)
+//   n = nombre de la coordinación o de la persona (opcional)
+//   r = rol de la cuenta: NUTRICION, PSICOLOGIA… (opcional; fase 7)
+//   x = unidad_id de la persona (opcional; fase 7)
+//
+// Los opcionales solo se escriben si traen texto, y siempre DESPUÉS de los
+// de siempre: sin ellos el boleto es byte a byte el de antes. Los
+// verificadores viejos ignoran las claves que no conocen.
 //
 // Sin relleno '=': el boleto viaja en una URL y '=' ahí es ambiguo.
 
@@ -42,10 +48,14 @@ function _mismaCadena(a, b) {
   return diferencia === 0;
 }
 
-function emitirBoleto(usuario, coordinacionId, destino, vence, secreto, nombre) {
+// extra = { r: rol, x: unidad_id }, opcional.
+function emitirBoleto(usuario, coordinacionId, destino, vence, secreto, nombre, extra) {
   if (!secreto) throw new Error('SIN_SECRETO: falta SECRETO_BOLETOS en las propiedades del script.');
   var datos = { c: coordinacionId, u: usuario, d: destino, v: vence };
   if (nombre) datos.n = nombre;
+  ['r', 'x'].forEach(function (k) {
+    if (extra && typeof extra[k] === 'string' && extra[k]) datos[k] = extra[k];
+  });
   var cuerpo = _b64(JSON.stringify(datos));
   return cuerpo + '.' + _firma(cuerpo, secreto);
 }
@@ -65,10 +75,12 @@ function verificarBoleto(boleto, secreto, destino, ahora) {
   if (!datos || typeof datos.c !== 'string' || !datos.c ||
       typeof datos.u !== 'string' || !datos.u || datos.d !== destino) return invalido;
   if (datos.n !== undefined && typeof datos.n !== 'string') return invalido;
+  if (datos.r !== undefined && typeof datos.r !== 'string') return invalido;
+  if (datos.x !== undefined && typeof datos.x !== 'string') return invalido;
 
   if (!(Number(datos.v) > Number(ahora))) {
     return { ok: false, code: 'BOLETO_VENCIDO', message: 'Su acceso venció. Vuelva a entrar.' };
   }
   return { ok: true, coordinacion_id: datos.c, usuario: datos.u, destino: datos.d, vence: datos.v,
-           nombre: datos.n || '' };
+           nombre: datos.n || '', rol: datos.r || '', unidad_id: datos.x || '' };
 }

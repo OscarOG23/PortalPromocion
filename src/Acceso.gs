@@ -15,8 +15,10 @@ function _buscarUsuario(filas, nombreUsuario) {
   return null;
 }
 
+// Lo que sale al navegador: nunca sal ni huella.
 function _cuentaPublica(fila) {
-  return { usuario: fila.usuario, nombre: fila.nombre, coordinacion_id: fila.coordinacion_id };
+  return { usuario: fila.usuario, nombre: fila.nombre, coordinacion_id: fila.coordinacion_id,
+           rol: rolDeCuenta(fila), unidad_id: String(fila.unidad_id || '') };
 }
 
 // Devuelve siempre el mismo error, sin distinguir entre usuario inexistente,
@@ -27,6 +29,7 @@ function _resultadoAcceso(fila, contrasena) {
                    message: 'Usuario o contraseña incorrectos.' };
   if (!fila) return generico;
   if (!esVerdadero(fila.activo)) return generico;
+  if (!cuentaConRolValido(fila)) return generico;
   if (!verificarContrasena(contrasena, fila.sal, fila.huella)) return generico;
   return { ok: true, usuario: _cuentaPublica(fila) };
 }
@@ -42,7 +45,7 @@ function _cuentaDelBoleto(verificado, filas) {
   var invalido = { ok: false, code: 'BOLETO_INVALIDO',
                    message: 'El acceso no es válido. Vuelva a entrar.' };
   var fila = _buscarUsuario(filas, verificado.usuario);
-  if (!fila || !esVerdadero(fila.activo)) return invalido;
+  if (!fila || !esVerdadero(fila.activo) || !cuentaConRolValido(fila)) return invalido;
   if (fila.coordinacion_id !== verificado.coordinacion_id) return invalido;
   return { ok: true, usuario: _cuentaPublica(fila) };
 }

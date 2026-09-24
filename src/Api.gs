@@ -56,21 +56,24 @@ function contextoDeBoleto(boleto) {
   var cuenta = usuarioDeBoleto(boleto);
   if (!cuenta.ok) return cuenta;
   var u = cuenta.usuario;
-  // En USUARIOS, `nombre` es el nombre de la coordinación: lo pone así
-  // crearCuentasDeCoordinaciones().
+  // En USUARIOS, `nombre` es el nombre de la coordinación (lo pone así
+  // crearCuentasDeCoordinaciones()) o, en una cuenta de persona, el de ella.
   var coordinacion = { coordinacion_id: u.coordinacion_id, nombre: u.nombre, usuario: u.usuario };
   var anio = getConfig('anio_activo');
   var mes = getConfig('mes_activo');
   var secreto = secretoDeBoletos();
   var vence = Date.now() + VIDA_BOLETO_DESTINO_HORAS * 3600000;
 
-  var filas = destinosDeCoordinacion(leerCatalogo(HOJAS.DESTINOS), u.coordinacion_id);
-  var nativos = consultarSondasNativas_(filas, coordinacion, anio, mes, secreto);
+  // Rol vacío (cuentas de antes de la fase 7) es coordinación.
+  var rol = rolDeCuenta(u);
+  var filas = destinosDeCuenta(leerCatalogo(HOJAS.DESTINOS),
+                               { rol: rol, coordinacion_id: u.coordinacion_id });
+  var nativos = consultarSondasNativas_(filas, u, anio, mes, secreto);
 
   var destinos = filas.map(function (d) {
       var id = String(d.destino_id).trim();
       var boletoDestino = d.clase !== CLASES_DESTINO.FORMULARIO && !problemasDeDestino(d).length
-        ? emitirBoleto(u.usuario, u.coordinacion_id, id, vence, secreto, u.nombre) : '';
+        ? boletoParaDestino(u, id, vence, secreto) : '';
       return {
         destino_id: id,
         nombre: d.nombre,
@@ -82,6 +85,9 @@ function contextoDeBoleto(boleto) {
       };
     });
 
-  return { ok: true, usuario: { nombre: u.nombre, coordinacion_id: u.coordinacion_id },
+  var unidad = rol === ROLES.COORDINACION ? ''
+    : nombreDeUnidadPorId(leerCatalogo(HOJAS.UNIDADES), u.unidad_id);
+  return { ok: true, usuario: { nombre: u.nombre, coordinacion_id: u.coordinacion_id, rol: rol,
+                                unidad: unidad },
            periodo: { anio: anio, mes: mes }, destinos: destinos };
 }

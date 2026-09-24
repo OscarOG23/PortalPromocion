@@ -18,6 +18,7 @@ const PUROS = [
   'Acceso.gs',
   'Destinos.gs',
   'Api.gs',
+  'Catalogos.generado.gs',
 
   'Tests.gs'
 ];
@@ -35,31 +36,44 @@ function aBuffer(valor) {
   return Buffer.from(String(valor), 'utf8');
 }
 
+const UTILITIES = {
+  DigestAlgorithm: { SHA_256: 'SHA_256' },
+  Charset: { UTF_8: 'UTF_8' },
+  computeDigest: function (_alg, texto) {
+    return conSigno(crypto.createHash('sha256').update(aBuffer(texto)).digest());
+  },
+  computeHmacSha256Signature: function (valor, clave) {
+    return conSigno(crypto.createHmac('sha256', aBuffer(clave)).update(aBuffer(valor)).digest());
+  },
+  // Igual que Apps Script: alfabeto web-safe (- y _) CON relleno '='.
+  base64EncodeWebSafe: function (valor) {
+    return aBuffer(valor).toString('base64').replace(/\+/g, '-').replace(/\//g, '_');
+  },
+  base64DecodeWebSafe: function (texto) {
+    return conSigno(Buffer.from(String(texto).replace(/-/g, '+').replace(/_/g, '/'), 'base64'));
+  },
+  newBlob: function (bytes) {
+    return { getDataAsString: function () { return aBuffer(bytes).toString('utf8'); } };
+  },
+  getUuid: function () { return crypto.randomUUID(); }
+};
+
 const contexto = vm.createContext({
   Logger: { log: console.log },
   console: console,
-  Utilities: {
-    DigestAlgorithm: { SHA_256: 'SHA_256' },
-    Charset: { UTF_8: 'UTF_8' },
-    computeDigest: function (_alg, texto) {
-      return conSigno(crypto.createHash('sha256').update(aBuffer(texto)).digest());
-    },
-    computeHmacSha256Signature: function (valor, clave) {
-      return conSigno(crypto.createHmac('sha256', aBuffer(clave)).update(aBuffer(valor)).digest());
-    },
-    // Igual que Apps Script: alfabeto web-safe (- y _) CON relleno '='.
-    base64EncodeWebSafe: function (valor) {
-      return aBuffer(valor).toString('base64').replace(/\+/g, '-').replace(/\//g, '_');
-    },
-    base64DecodeWebSafe: function (texto) {
-      return conSigno(Buffer.from(String(texto).replace(/-/g, '+').replace(/_/g, '/'), 'base64'));
-    },
-    newBlob: function (bytes) {
-      return { getDataAsString: function () { return aBuffer(bytes).toString('utf8'); } };
-    },
-    getUuid: function () { return crypto.randomUUID(); }
-  }
+  Utilities: UTILITIES
 });
+
+// Compatibilidad hacia atrás del boleto: el verificador que hoy corre en los
+// hermanos (copia de Actividad Física) se carga en un contexto APARTE y se
+// expone como verificarBoletoViejo. La prueba que lo usa se salta si la
+// copia no está en esta máquina (y en el editor de Apps Script).
+const BOLETO_VIEJO = path.join(__dirname, '..', '..', 'ACTIVIDAD FISICA', 'src', 'Boleto.gs');
+if (fs.existsSync(BOLETO_VIEJO)) {
+  const viejo = vm.createContext({ Utilities: UTILITIES });
+  vm.runInContext(fs.readFileSync(BOLETO_VIEJO, 'utf8'), viejo, { filename: 'Boleto.viejo.gs' });
+  contexto.verificarBoletoViejo = viejo.verificarBoleto;
+}
 
 for (const archivo of PUROS) {
   const ruta = path.join(__dirname, '..', 'src', archivo);

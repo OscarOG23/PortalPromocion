@@ -9,7 +9,10 @@ function _esquema() {
     [HOJAS.COORDINACIONES, ['coordinacion_id', 'nombre', 'municipio_principal', 'activo', 'orden']],
     [HOJAS.UNIDADES, ['unidad_id', 'clues', 'nombre_unidad', 'municipio', 'coordinacion_id',
                       'responsable', 'activo']],
-    [HOJAS.USUARIOS, ['usuario', 'nombre', 'rol', 'coordinacion_id', 'sal', 'huella', 'activo']],
+    // unidad_id va AL FINAL: agregarla después no mueve ninguna columna.
+    [HOJAS.USUARIOS, ['usuario', 'nombre', 'rol', 'coordinacion_id', 'sal', 'huella', 'activo',
+                      'unidad_id']],
+    [HOJAS.PERSONAL, ['nombre', 'rol', 'unidad', 'clues', 'activo']],
     [HOJAS.DESTINOS, ['destino_id', 'nombre', 'apartado', 'clase', 'url', 'aplica_a',
                       'param_identidad', 'valor_identidad', 'sonda', 'orden', 'activo']],
     [HOJAS.AUDITORIA, ['timestamp', 'usuario', 'accion', 'detalle']]
@@ -88,6 +91,22 @@ function verificarCatalogos() {
              ' unidades huérfanas');
 }
 
+// Para la hoja USUARIOS que ya existía antes de la fase 7: agrega la columna
+// unidad_id al final. Correrla dos veces no hace nada la segunda.
+function agregarColumnaUnidadAUsuarios() {
+  var hoja = SpreadsheetApp.getActive().getSheetByName(HOJAS.USUARIOS);
+  if (!hoja) throw new Error('Falta la hoja USUARIOS. Ejecute setupDatabase() primero.');
+  var ultima = hoja.getLastColumn();
+  var encabezados = hoja.getRange(1, 1, 1, ultima).getValues()[0];
+  if (encabezados.indexOf('unidad_id') !== -1) {
+    Logger.log('USUARIOS ya tenía unidad_id; no se cambió nada');
+    return;
+  }
+  hoja.getRange(1, ultima + 1).setValue('unidad_id').setFontWeight('bold');
+  invalidarCatalogo(HOJAS.USUARIOS);
+  Logger.log('USUARIOS — columna unidad_id agregada');
+}
+
 // Crea una cuenta por coordinación. CORRERLA DE NUEVO NO reactiva una baja:
 // si una cuenta ya existía, conserva su `activo` tal como estaba (una fila
 // nueva sí nace activa). Como la contraseña se deriva del usuario
@@ -119,11 +138,20 @@ function crearCuentasDeCoordinaciones() {
   if (choques.length) throw new Error('Coordinaciones con el mismo usuario: ' + choques.join(', '));
 
   // Cuentas actuales por usuario, para no resucitar una baja: si ya existía
-  // y su activo no era un sí explícito, se conserva tal cual.
-  var actuales = {};
+  // y su activo no era un sí explícito, se conserva tal cual. Las cuentas de
+  // persona (fase 7) no son de esta función: se copian intactas.
+  var actuales = {}, dePersona = [];
   leerTabla(HOJAS.USUARIOS).forEach(function (f) {
+    if (rolDeCuenta(f) !== ROLES.COORDINACION) { dePersona.push(f); return; }
     actuales[String(f.usuario || '').trim().toLowerCase()] = f;
   });
+  var choquesConPersona = dePersona.filter(function (f) {
+    return vistos[String(f.usuario || '').trim().toLowerCase()];
+  }).map(function (f) { return f.usuario; });
+  if (choquesConPersona.length) {
+    throw new Error('Cuentas de persona con el usuario de una coordinación: ' +
+                    choquesConPersona.join(', '));
+  }
 
   var vistosAhora = {};
   var filas = coords.map(function (c) {
@@ -139,15 +167,17 @@ function crearCuentasDeCoordinaciones() {
     }
     return { usuario: usuario, nombre: c.nombre, rol: 'COORDINACION',
              coordinacion_id: c.coordinacion_id, sal: sal,
-             huella: huellaContrasena(sal, contrasenaDeUsuario(usuario)), activo: activo };
+             huella: huellaContrasena(sal, contrasenaDeUsuario(usuario)), activo: activo,
+             unidad_id: '' };
   });
 
   Object.keys(actuales).forEach(function (usuario) {
     if (!vistosAhora[usuario]) Logger.log('cuenta eliminada: ' + usuario);
   });
 
-  reemplazarFilas(HOJAS.USUARIOS, filas);
+  reemplazarFilas(HOJAS.USUARIOS, filas.concat(dePersona));
   invalidarCatalogo(HOJAS.USUARIOS);
+  if (dePersona.length) Logger.log('se conservaron ' + dePersona.length + ' cuentas de persona');
 
   Logger.log('=== La contraseña de cada quien es su usuario + "26" (chiautla / chiautla26) ===');
   filas.forEach(function (f) { Logger.log(f.usuario + '  ' + contrasenaDeUsuario(f.usuario) + '   ' + f.nombre); });
@@ -161,8 +191,10 @@ function invalidarCacheDeUsuarios() {
   Logger.log('caché de USUARIOS invalidada');
 }
 
-// Da una sal nueva a UNA cuenta sin tocar las demás. La contraseña sigue
-// siendo usuario + '26'; esto sirve si la huella se corrompió.
+// Da una sal nueva a UNA cuenta sin tocar las demás. Para una coordinación la
+// contraseña sigue siendo usuario + '26' (sirve si la huella se corrompió).
+// Para una persona se genera otra contraseña aleatoria, que sale en el
+// registro de ejecución para entregársela.
 function restablecerContrasena(nombreUsuario) {
   var filas = leerTabla(HOJAS.USUARIOS);
   var fila = _buscarUsuario(filas, nombreUsuario);
@@ -170,13 +202,66 @@ function restablecerContrasena(nombreUsuario) {
     throw new Error('No existe el usuario "' + nombreUsuario + '". Usuarios: ' +
                     filas.map(function (f) { return f.usuario; }).join(', '));
   }
+  var contrasena = rolDeCuenta(fila) === ROLES.COORDINACION
+    ? contrasenaDeUsuario(fila.usuario) : contrasenaAleatoria();
   fila.sal = generarSal();
-  fila.huella = huellaContrasena(fila.sal, contrasenaDeUsuario(fila.usuario));
+  fila.huella = huellaContrasena(fila.sal, contrasena);
   reemplazarFilas(HOJAS.USUARIOS, filas);
   invalidarCatalogo(HOJAS.USUARIOS);
   registrarEvento(Session.getEffectiveUser().getEmail() || 'editor', 'RESTABLECER_CONTRASENA',
                   fila.usuario);
-  Logger.log(fila.usuario + '  ' + contrasenaDeUsuario(fila.usuario) + '   ' + fila.nombre);
+  Logger.log(fila.usuario + '  ' + contrasena + '   ' + fila.nombre);
+}
+
+// Crea las cuentas de persona que falten a partir de la hoja PERSONAL
+// (nombre, rol, unidad, clues, activo). No toca ninguna cuenta existente ni
+// las de coordinación. La contraseña de cada cuenta NUEVA sale en el registro
+// de ejecución UNA sola vez: no se guarda en ningún lado, hay que copiarla y
+// repartirla en ese momento. Lo que no cruce con el catálogo se lista y no se
+// crea.
+function crearCuentasDePersonal() {
+  var hoja = SpreadsheetApp.getActive().getSheetByName(HOJAS.USUARIOS);
+  if (!hoja) throw new Error('Falta la hoja USUARIOS. Ejecute setupDatabase() primero.');
+  var encabezados = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+  ['usuario', 'nombre', 'rol', 'coordinacion_id', 'sal', 'huella', 'activo', 'unidad_id']
+    .forEach(function (c) {
+      if (encabezados.indexOf(c) === -1) {
+        throw new Error('La hoja USUARIOS no tiene la columna "' + c +
+                        '". Ejecute agregarColumnaUnidadAUsuarios() primero.');
+      }
+    });
+  if (!SpreadsheetApp.getActive().getSheetByName(HOJAS.PERSONAL)) {
+    throw new Error('Falta la hoja PERSONAL. Ejecute setupDatabase() y pegue el personal.');
+  }
+
+  var unidades = leerTabla(HOJAS.UNIDADES);
+  if (!unidades.length) throw new Error('No hay unidades cargadas. Ejecute cargarUniverso() primero.');
+  var plan = planDeCuentasDePersonal(leerTabla(HOJAS.PERSONAL), leerTabla(HOJAS.USUARIOS), unidades);
+
+  plan.problemas.forEach(function (p) {
+    Logger.log('NO SE CREÓ  fila ' + p.fila + '  ' + p.nombre + ': ' + p.motivo);
+  });
+  if (!plan.crear.length) {
+    Logger.log('=== No hay cuentas nuevas que crear (' + plan.problemas.length + ' problemas) ===');
+    return;
+  }
+
+  escribirFilas(HOJAS.USUARIOS, plan.crear.map(function (c) {
+    var sal = generarSal();
+    return { usuario: c.usuario, nombre: c.nombre, rol: c.rol, coordinacion_id: c.coordinacion_id,
+             sal: sal, huella: huellaContrasena(sal, c.contrasena), activo: 'TRUE',
+             unidad_id: c.unidad_id };
+  }));
+  invalidarCatalogo(HOJAS.USUARIOS);
+
+  Logger.log('=== Cuentas nuevas: usuario / contraseña / nombre / unidad. Cópielas AHORA: ' +
+             'no se vuelven a mostrar ===');
+  plan.crear.forEach(function (c) {
+    Logger.log(c.usuario + ' / ' + c.contrasena + ' / ' + c.nombre + ' / ' + c.unidad +
+               ' (' + c.rol + ')');
+  });
+  Logger.log('=== ' + plan.crear.length + ' cuentas creadas, ' + plan.problemas.length +
+             ' filas con problema ===');
 }
 
 // Sin argumento, solo crea el secreto si no existe. Con `true` lo reemplaza:
@@ -207,6 +292,7 @@ function verificarDestinos() {
     if (id && ids[id]) p.push('destino_id repetido');
     ids[id] = true;
     Logger.log('fila ' + (i + 2) + ' ' + (id || '(sin id)') + ': ' + (p.length ? p.join('; ') : 'bien'));
+    advertenciasDeDestino(d).forEach(function (a) { Logger.log('    aviso: ' + a); });
   });
   invalidarCatalogo(HOJAS.DESTINOS);
   Logger.log(filas.length + ' destinos revisados');

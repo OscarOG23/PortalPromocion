@@ -21,6 +21,22 @@ var DETALLES_CLASE = {
   FORMULARIO: 'Formulario ya prellenado'
 };
 
+// Cuentas de persona (fase 7): la cabecera dice su disciplina y su unidad.
+var DISCIPLINAS = { NUTRICION: 'Nutrición', PSICOLOGIA: 'Psicología', PROMOTOR: 'Promoción' };
+
+// Qué dice la cabecera y el aviso sin destinos. Una coordinación (o una
+// respuesta sin rol, de antes de la fase 7) se ve igual que siempre.
+function textosDeCuenta(usuario) {
+  var rol = String((usuario && usuario.rol) || '').toUpperCase();
+  if (!rol || rol === 'COORDINACION') {
+    return { sobre: 'Coordinación',
+             vacio: 'Todavía no hay capturadores asignados a su coordinación.' };
+  }
+  var partes = [DISCIPLINAS[rol] || rol];
+  if (usuario.unidad) partes.push(usuario.unidad);
+  return { sobre: partes.join(' · '), vacio: 'Aún no hay formularios para su perfil.' };
+}
+
 var MINUTOS_REFRESCO = 60;
 var ultimaCarga = 0;
 
@@ -101,7 +117,10 @@ function sacudir(nodoASacudir) {
 // --- Portal -------------------------------------------------------------------
 
 function pintarPortal(ctx) {
+  var textos = textosDeCuenta(ctx.usuario);
+  el('cabecera-sobre').textContent = textos.sobre;
   el('identidad').textContent = ctx.usuario.nombre;
+  el('sin-destinos-texto').textContent = textos.vacio;
 
   var mes = parseInt(ctx.periodo.mes, 10);
   var periodo = el('periodo');

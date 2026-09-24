@@ -57,7 +57,7 @@ function registrarPruebas() {
     assertIgual(/^[A-Za-z0-9_.-]+$/.test(b), true, 'seguro para URL');
     assertIgual(verificarBoleto(b, SECRETO, 'sips', AHORA),
                 { ok: true, coordinacion_id: 'COOR07', usuario: 'ñandú',
-                  destino: 'sips', vence: LUEGO, nombre: '' });
+                  destino: 'sips', vence: LUEGO, nombre: '', rol: '', unidad_id: '' });
   });
 
   prueba('boleto: lleva el nombre de la coordinación firmado', function () {
@@ -167,7 +167,8 @@ function registrarPruebas() {
   prueba('acceso: correcto devuelve la cuenta sin sal ni huella', function () {
     assertIgual(_resultadoAcceso(FILA_CHIAUTLA, 'chiautla26'),
                 { ok: true, usuario: { usuario: 'chiautla', nombre: 'CHIAUTLA',
-                                       coordinacion_id: 'COOR01' } });
+                                       coordinacion_id: 'COOR01', rol: 'COORDINACION',
+                                       unidad_id: '' } });
   });
 
   prueba('buscar usuario ignora mayúsculas y espacios', function () {
@@ -179,7 +180,8 @@ function registrarPruebas() {
     assertIgual(_cuentaDelBoleto({ ok: true, usuario: 'chiautla', coordinacion_id: 'COOR01' },
                                  [FILA_CHIAUTLA]),
                 { ok: true, usuario: { usuario: 'chiautla', nombre: 'CHIAUTLA',
-                                       coordinacion_id: 'COOR01' } });
+                                       coordinacion_id: 'COOR01', rol: 'COORDINACION',
+                                       unidad_id: '' } });
   });
 
   prueba('cuenta del boleto: dada de baja después de entrar', function () {
@@ -388,6 +390,393 @@ function registrarPruebas() {
                  interpretarRespuestaSonda(500, '{"ok":true,"reportado":true}')],
                 [{ ok: true, reportado: true }, { ok: true, reportado: false },
                  null, null, null, null]);
+  });
+
+  // --- Perfiles (fase 7) --------------------------------------------------
+
+  function idsDe(lista) { return lista.map(function (d) { return d.destino_id; }); }
+
+  var FILAS_PERFIL = [
+    destino({ destino_id: 'todas', orden: 4, aplica_a: 'TODAS' }),
+    destino({ destino_id: 'lista', orden: 3, aplica_a: 'COOR01, COOR05' }),
+    destino({ destino_id: 'nut', orden: 2, aplica_a: 'ROL:NUTRICION' }),
+    destino({ destino_id: 'ambos', orden: 1, aplica_a: 'ROL:NUTRICION, ROL:PSICOLOGIA' }),
+    destino({ destino_id: 'apagado', orden: 0, aplica_a: 'ROL:NUTRICION', activo: 'FALSE' }),
+    destino({ destino_id: 'vacio', orden: 0, aplica_a: '' })
+  ];
+
+  prueba('rolDeCuenta: vacío es coordinación, se normaliza', function () {
+    assertIgual([rolDeCuenta({}), rolDeCuenta({ rol: '' }), rolDeCuenta({ rol: ' nutricion ' }),
+                 rolDeCuenta(null), rolDeCuenta({ rol: 'PSICOLOGIA' })],
+                ['COORDINACION', 'COORDINACION', 'NUTRICION', 'COORDINACION', 'PSICOLOGIA']);
+  });
+
+  prueba('perfiles: la coordinación ve TODAS y su lista, nunca ROL:*', function () {
+    assertIgual(idsDe(destinosDeCuenta(FILAS_PERFIL, { rol: 'COORDINACION', coordinacion_id: 'COOR05' })),
+                ['lista', 'todas']);
+    assertIgual(idsDe(destinosDeCuenta(FILAS_PERFIL, { rol: 'COORDINACION', coordinacion_id: 'COOR09' })),
+                ['todas']);
+  });
+
+  prueba('perfiles: rol vacío es coordinación', function () {
+    assertIgual(idsDe(destinosDeCuenta(FILAS_PERFIL, { rol: '', coordinacion_id: 'COOR05' })),
+                ['lista', 'todas']);
+  });
+
+  prueba('perfiles: la persona ve solo ROL:<su rol>, nunca TODAS ni COORxx', function () {
+    assertIgual(idsDe(destinosDeCuenta(FILAS_PERFIL, { rol: 'NUTRICION', coordinacion_id: 'COOR05' })),
+                ['ambos', 'nut']);
+  });
+
+  prueba('perfiles: lista mezclada de roles vale para cada uno', function () {
+    assertIgual(idsDe(destinosDeCuenta(FILAS_PERFIL, { rol: 'psicologia', coordinacion_id: 'COOR01' })),
+                ['ambos']);
+    assertIgual(idsDe(destinosDeCuenta(FILAS_PERFIL, { rol: 'PROMOTOR', coordinacion_id: 'COOR01' })),
+                []);
+  });
+
+  prueba('perfiles: aplica_a vacío no aplica a nadie', function () {
+    ['COORDINACION', 'NUTRICION', 'PSICOLOGIA', 'PROMOTOR'].forEach(function (rol) {
+      assertIgual(idsDe(destinosDeCuenta([destino({ aplica_a: '' })],
+                                         { rol: rol, coordinacion_id: 'COOR05' })), [], rol);
+    });
+  });
+
+  prueba('perfiles: el alias de coordinación sigue igual', function () {
+    assertIgual(idsDe(destinosDeCoordinacion(FILAS_PERFIL, 'COOR05')), ['lista', 'todas']);
+  });
+
+  prueba('advertencias: rol desconocido avisa pero no bloquea la fila', function () {
+    var d = destino({ aplica_a: 'ROL:NUTRICION, ROL:XYZ' });
+    assertIgual(problemasDeDestino(d), []);
+    assertIgual(advertenciasDeDestino(d), ['rol desconocido en aplica_a: "ROL:XYZ"']);
+    assertIgual(advertenciasDeDestino(destino({ aplica_a: 'ROL:NUTRICION,ROL:PSICOLOGIA' })), []);
+    assertIgual(advertenciasDeDestino(destino({ aplica_a: 'ROL:COORDINACION' })),
+                ['rol desconocido en aplica_a: "ROL:COORDINACION"']);
+  });
+
+  prueba('advertencias: la coordinación de una lista con rol desconocido conserva su enlace', function () {
+    var d = destino({ clase: 'HERMANO_CON_CONTRASENA', param_identidad: '',
+                      url: 'https://script.google.com/macros/s/X/exec', aplica_a: 'COOR05, ROL:XYZ' });
+    assertIgual(idsDe(destinosDeCuenta([d], { rol: 'COORDINACION', coordinacion_id: 'COOR05' })), ['d1']);
+    assertIgual(enlaceDeDestino(d, COORD_14, 'AAA.BBB'),
+                'https://script.google.com/macros/s/X/exec?boleto=AAA.BBB');
+  });
+
+  prueba('aplica_a: ROL: se lee sin espacios, acentos ni mayúsculas', function () {
+    var d = destino({ aplica_a: ' rol: Nutrición , ROL : PSICOLOGÍA' });
+    assertIgual([idsDe(destinosDeCuenta([d], { rol: 'NUTRICION', coordinacion_id: 'COOR05' })),
+                 idsDe(destinosDeCuenta([d], { rol: 'PSICOLOGIA', coordinacion_id: 'COOR05' }))],
+                [['d1'], ['d1']]);
+    assertIgual(advertenciasDeDestino(destino({ aplica_a: 'ROL: Nutrición' })), []);
+  });
+
+  prueba('aplica_a: TODAS vale solo como celda entera', function () {
+    var enLista = destino({ aplica_a: 'TODAS, ROL:XYZ' });
+    assertIgual([_aplicaA(destino({ aplica_a: ' todas ' }), 'COOR05'),
+                 _aplicaA(destino({ aplica_a: 'TODAS, COOR01' }), 'COOR05'),
+                 _aplicaA(destino({ aplica_a: 'COOR05, TODAS' }), 'COOR05'),
+                 _aplicaA(enLista, 'COOR05')],
+                [true, false, true, false]);
+    assertIgual(problemasDeDestino(enLista), []);
+    assertIgual(advertenciasDeDestino(enLista),
+                ['TODAS dentro de una lista no cuenta: debe ir sola en la celda',
+                 'rol desconocido en aplica_a: "ROL:XYZ"']);
+  });
+
+  prueba('cuenta: rol vacío con unidad no entra', function () {
+    var sinRol = JSON.parse(JSON.stringify(FILA_CHIAUTLA));
+    sinRol.rol = '';
+    var conUnidad = JSON.parse(JSON.stringify(sinRol));
+    conUnidad.unidad_id = 'U065';
+    var inventado = JSON.parse(JSON.stringify(FILA_CHIAUTLA));
+    inventado.rol = 'DENTAL';
+    assertIgual([_resultadoAcceso(sinRol, 'chiautla26').ok,
+                 _resultadoAcceso(conUnidad, 'chiautla26'),
+                 _resultadoAcceso(inventado, 'chiautla26')],
+                [true, _resultadoAcceso(null, 'x'), _resultadoAcceso(null, 'x')]);
+    var boleto = { ok: true, usuario: 'chiautla', coordinacion_id: 'COOR01' };
+    assertIgual([_cuentaDelBoleto(boleto, [sinRol]).ok,
+                 _cuentaDelBoleto(boleto, [conUnidad]).code,
+                 _cuentaDelBoleto(boleto, [inventado]).code],
+                [true, 'BOLETO_INVALIDO', 'BOLETO_INVALIDO']);
+  });
+
+  // --- Boleto con rol y unidad (fase 7) -----------------------------------
+
+  prueba('boleto sin extra: byte a byte el mismo que antes de la fase 7', function () {
+    // Emitido con el código de la fase 6; si cambia, los boletos de las
+    // coordinaciones cambiaron de forma.
+    var fijo = 'eyJjIjoiQ09PUjAxIiwidSI6ImNoaWF1dGxhIiwiZCI6InNpcHMiLCJ2IjoxNzkwMDAzNjAwMDAwLCJu' +
+               'IjoiQ0hJQVVUTEEifQ.32-Jip3MPdP13ZsBMWI1cDVyQRVhM7u75aJsZwvPgy4';
+    assertIgual(emitirBoleto('chiautla', 'COOR01', 'sips', LUEGO, SECRETO, 'CHIAUTLA'), fijo);
+    assertIgual(emitirBoleto('chiautla', 'COOR01', 'sips', LUEGO, SECRETO, 'CHIAUTLA', {}), fijo);
+    assertIgual(emitirBoleto('chiautla', 'COOR01', 'sips', LUEGO, SECRETO, 'CHIAUTLA',
+                             { r: '', x: '' }), fijo);
+  });
+
+  prueba('boleto: lleva rol y unidad firmados, después de las claves de siempre', function () {
+    var b = emitirBoleto('rquintanarz', 'COOR05', 'atencion', LUEGO, SECRETO, 'ROSA QUINTANAR ZUBIETA',
+                         { r: 'NUTRICION', x: 'U0123' });
+    assertIgual(JSON.parse(_desdeB64(b.split('.')[0])),
+                { c: 'COOR05', u: 'rquintanarz', d: 'atencion', v: LUEGO, n: 'ROSA QUINTANAR ZUBIETA',
+                  r: 'NUTRICION', x: 'U0123' });
+    assertIgual(verificarBoleto(b, SECRETO, 'atencion', AHORA),
+                { ok: true, coordinacion_id: 'COOR05', usuario: 'rquintanarz', destino: 'atencion',
+                  vence: LUEGO, nombre: 'ROSA QUINTANAR ZUBIETA', rol: 'NUTRICION',
+                  unidad_id: 'U0123' });
+  });
+
+  prueba('boleto: sin rol ni unidad los devuelve vacíos', function () {
+    var v = verificarBoleto(emitirBoleto('chiautla', 'COOR01', 'sips', LUEGO, SECRETO),
+                            SECRETO, 'sips', AHORA);
+    assertIgual([v.rol, v.unidad_id], ['', '']);
+  });
+
+  prueba('boleto: rol o unidad que no son texto lo invalidan', function () {
+    function firmado(datos) {
+      var cuerpo = _b64(JSON.stringify(datos));
+      return cuerpo + '.' + _firma(cuerpo, SECRETO);
+    }
+    assertIgual([
+      verificarBoleto(firmado({ c: 'COOR01', u: 'x', d: 'sips', v: LUEGO, r: 5 }), SECRETO, 'sips', AHORA).code,
+      verificarBoleto(firmado({ c: 'COOR01', u: 'x', d: 'sips', v: LUEGO, x: ['U1'] }), SECRETO, 'sips', AHORA).code,
+      verificarBoleto(firmado({ c: 'COOR01', u: 'x', d: 'sips', v: LUEGO, r: null }), SECRETO, 'sips', AHORA).code
+    ], ['BOLETO_INVALIDO', 'BOLETO_INVALIDO', 'BOLETO_INVALIDO']);
+  });
+
+  prueba('boleto: un verificador viejo (Actividad Física) acepta rol y unidad', function () {
+    // verificarBoletoViejo lo inyecta tools/run-tests.js desde la copia de
+    // ACTIVIDAD FISICA/src/Boleto.gs; en el editor no existe y se salta.
+    if (typeof verificarBoletoViejo !== 'function') return;
+    var b = emitirBoleto('rquintanarz', 'COOR05', 'atencion', LUEGO, SECRETO, 'ROSA QUINTANAR ZUBIETA',
+                         { r: 'PSICOLOGIA', x: 'U0123' });
+    var v = verificarBoletoViejo(b, SECRETO, 'atencion', AHORA);
+    assertIgual([v.ok, v.coordinacion_id, v.usuario, v.nombre],
+                [true, 'COOR05', 'rquintanarz', 'ROSA QUINTANAR ZUBIETA']);
+  });
+
+  // --- Cuentas de persona (fase 7) ----------------------------------------
+  // Nombres de persona FICTICIOS: el repositorio es público y no debe llevar
+  // el padrón. Las unidades y sus CLUES sí son del catálogo público.
+
+  prueba('cuenta pública: lleva rol y unidad, nunca sal ni huella', function () {
+    var persona = { usuario: 'aperezl', nombre: 'ANA PÉREZ LÓPEZ', rol: 'NUTRICION',
+                    coordinacion_id: 'COOR20', unidad_id: 'U065', sal: 's', huella: 'h',
+                    activo: 'TRUE' };
+    assertIgual(_cuentaPublica(persona),
+                { usuario: 'aperezl', nombre: 'ANA PÉREZ LÓPEZ', coordinacion_id: 'COOR20',
+                  rol: 'NUTRICION', unidad_id: 'U065' });
+    assertIgual(_cuentaPublica({ usuario: 'x', nombre: 'X', coordinacion_id: 'COOR01', rol: '' }).rol,
+                'COORDINACION');
+  });
+
+  prueba('normalizarClues: mayúsculas, sin espacios, O por 0 en la parte numérica', function () {
+    assertIgual(['MCIMBO99999', ' mcimb 099999 ', 'MCSSA001904', 'mcssaoo19o4', '', null]
+                  .map(normalizarClues),
+                ['MCIMB099999', 'MCIMB099999', 'MCSSA001904', 'MCSSA001904', '', '']);
+  });
+
+  prueba('sinTitulo quita los títulos con o sin punto', function () {
+    assertIgual(['L.N. ANA PÉREZ LÓPEZ', 'l.n.ANA PÉREZ', 'LIC. ANA PÉREZ', 'Lic ANA PÉREZ',
+                 'PSIC. JUAN DE LA PEÑA SOTO', 'PSIC JUAN PEÑA', 'MTRO. JUAN PEÑA',
+                 'Mtra. ANA PÉREZ', 'DR. JUAN PEÑA', 'DRA.  ANA   PÉREZ', 'LICONA RUIZ ANA',
+                 'LIC. PSIC. ANA PÉREZ'
+                ].map(sinTitulo),
+                ['ANA PÉREZ LÓPEZ', 'ANA PÉREZ', 'ANA PÉREZ', 'ANA PÉREZ',
+                 'JUAN DE LA PEÑA SOTO', 'JUAN PEÑA', 'JUAN PEÑA',
+                 'ANA PÉREZ', 'JUAN PEÑA', 'ANA PÉREZ', 'LICONA RUIZ ANA', 'ANA PÉREZ']);
+  });
+
+  prueba('usuarioDePersona: inicial, primer apellido e inicial del segundo', function () {
+    assertIgual([usuarioDePersona('L.N. ANA PÉREZ LÓPEZ'),
+                 usuarioDePersona('PSIC. JUAN DE LA PEÑA SOTO'),
+                 usuarioDePersona('LUISA MARÍA IBÁÑEZ QUINTANAR'),
+                 usuarioDePersona('MARÍA DE LOS ÁNGELES QUINTANAR DEL OLMO'),
+                 usuarioDePersona('ANA PÉREZ')],
+                ['aperezl', 'jdelapenas', 'libanezq', 'mquintanard', 'aperez']);
+  });
+
+  prueba('usuarioDePersona: si choca lleva 2, 3…', function () {
+    assertIgual([usuarioDePersona('ANA PÉREZ LÓPEZ', ['APEREZL']),
+                 usuarioDePersona('ANA PÉREZ LÓPEZ', ['aperezl', 'aperezl2']),
+                 usuarioDePersona('ANA PÉREZ LÓPEZ', ['otro'])],
+                ['aperezl2', 'aperezl3', 'aperezl']);
+  });
+
+  var UNIDADES_PRUEBA = [
+    { unidad_id: 'U900', clues: 'MCIMB099999', nombre_unidad: 'SAN FICTICIO', coordinacion_id: 'COOR09', activo: 'TRUE' },
+    { unidad_id: 'U065', clues: 'MCSSA018226', nombre_unidad: 'CEAPS ACUITLAPILCO', coordinacion_id: 'COOR20', activo: 'TRUE' },
+    { unidad_id: 'U901', clues: 'MCSSA000001', nombre_unidad: 'LA GEMELA', coordinacion_id: 'COOR01', activo: 'TRUE' },
+    { unidad_id: 'U902', clues: 'MCSSA000002', nombre_unidad: 'C.S. LA GEMELA', coordinacion_id: 'COOR02', activo: 'TRUE' },
+    { unidad_id: 'U903', clues: 'MCSSA000003', nombre_unidad: 'CERRADA', coordinacion_id: 'COOR03', activo: 'FALSE' }
+  ];
+
+  function idUnidad(fila, unidades) {
+    var u = unidadDePersona(fila, unidades || UNIDADES_PRUEBA);
+    return u ? u.unidad_id : null;
+  }
+
+  prueba('unidadDePersona: primero por CLUES normalizada', function () {
+    assertIgual([idUnidad({ unidad: 'OTRO NOMBRE', clues: 'MCIMBO99999' }),
+                 idUnidad({ unidad: '', clues: 'mcssa018226' })],
+                ['U900', 'U065']);
+  });
+
+  prueba('unidadDePersona: nombre exacto gana; si no, sin prefijos en ambos lados', function () {
+    assertIgual([idUnidad({ unidad: 'CEAPS Acuitlapilco', clues: '' }),
+                 idUnidad({ unidad: 'C.E.A.P.S. ACUITLAPILCO', clues: 'NOEXISTE' }),
+                 idUnidad({ unidad: 'Centro de Salud San Ficticio', clues: '' }),
+                 idUnidad({ unidad: 'C.S.U. SAN FICTICIO', clues: '' }),
+                 idUnidad({ unidad: 'LA GEMELA', clues: '' }),
+                 idUnidad({ unidad: 'c.s. la gemela', clues: '' })],
+                ['U065', 'U065', 'U900', 'U900', 'U901', 'U902']);
+  });
+
+  prueba('unidadDePersona: ambigua, inactiva o inexistente no cruza', function () {
+    assertIgual([idUnidad({ unidad: 'CENTRO DE SALUD LA GEMELA', clues: '' }),
+                 idUnidad({ unidad: 'CERRADA', clues: '' }),
+                 idUnidad({ unidad: 'NINGUNA', clues: '' }),
+                 idUnidad({ unidad: '', clues: '' })],
+                [null, null, null, null]);
+  });
+
+  // El catálogo real (Catalogos.generado.gs), con los casos que confunden.
+  var UNIDADES_REALES = CSV_UNIDADES.split('\n').slice(1).map(function (linea) {
+    var c = linea.split(',');
+    return { unidad_id: c[0], clues: c[1], nombre_unidad: c[2], coordinacion_id: c[4], activo: c[6] };
+  });
+
+  prueba('unidadDePersona: catálogo real, sin cruzar por subcadena', function () {
+    assertIgual([idUnidad({ unidad: 'CEAPS CHIAUTLA', clues: '' }, UNIDADES_REALES),
+                 idUnidad({ unidad: 'Ceaps Santa Elena', clues: '' }, UNIDADES_REALES),
+                 idUnidad({ unidad: 'CEAPS SANTA MARIA CHIMALHUACAN', clues: '' }, UNIDADES_REALES),
+                 idUnidad({ unidad: 'San Andres Chiautla', clues: '' }, UNIDADES_REALES),
+                 idUnidad({ unidad: 'COL. SANTA ROSA', clues: '' }, UNIDADES_REALES),
+                 idUnidad({ unidad: 'SANTA ROSA', clues: '' }, UNIDADES_REALES)],
+                ['U012', 'U063', 'U053', 'U001', 'U023', null]);
+  });
+
+  // azar determinista: devuelve 0, 1, 2… módulo n.
+  function azarEnSerie() {
+    var i = 0;
+    return function (n) { return (i++) % n; };
+  }
+
+  prueba('contrasenaAleatoria: 10 caracteres del alfabeto sin ambiguos', function () {
+    assertIgual(contrasenaAleatoria(azarEnSerie()), 'abcdefghjk');
+    assertIgual(contrasenaAleatoria(function (n) { return n - 1; }), '9999999999');
+    for (var i = 0; i < 50; i++) {
+      var c = contrasenaAleatoria();
+      assertIgual(/^[abcdefghjkmnpqrstuvwxyz23456789]{10}$/.test(c), true, c);
+    }
+  });
+
+  prueba('azar seguro: sin sesgo, siempre dentro del rango', function () {
+    var azar = _azarSeguro();
+    var vistos = {};
+    for (var i = 0; i < 2000; i++) {
+      var n = azar(31);
+      if (n < 0 || n >= 31 || n !== Math.floor(n)) throw new Error('fuera de rango: ' + n);
+      vistos[n] = true;
+    }
+    assertIgual(Object.keys(vistos).length, 31);
+  });
+
+  prueba('plan de personal: crea solo lo que falta, con unidad y coordinación', function () {
+    var personal = [
+      { nombre: 'L.N. ANA PÉREZ LÓPEZ', rol: 'nutricion', unidad: 'CEAPS ACUITLAPILCO', clues: '', activo: 'TRUE' },
+      { nombre: 'PSIC. JUAN DE LA PEÑA SOTO', rol: 'PSICOLOGIA', unidad: '', clues: 'MCIMBO99999', activo: 'TRUE' },
+      { nombre: 'LIC. ANA PEREZ LOPEZ', rol: 'PSICOLOGIA', unidad: 'SAN FICTICIO', clues: '', activo: 'TRUE' },
+      { nombre: 'DRA. YA TIENE CUENTA', rol: 'NUTRICION', unidad: 'SAN FICTICIO', clues: '', activo: 'TRUE' },
+      { nombre: 'BAJA DE PRUEBA', rol: 'NUTRICION', unidad: 'SAN FICTICIO', clues: '', activo: 'FALSE' }
+    ];
+    var existentes = [
+      { usuario: 'chiautla', nombre: 'CHIAUTLA', rol: 'COORDINACION', coordinacion_id: 'COOR01' },
+      { usuario: 'ytienec', nombre: 'YA TIENE CUENTA', rol: 'NUTRICION', coordinacion_id: 'COOR09' }
+    ];
+    var plan = planDeCuentasDePersonal(personal, existentes, UNIDADES_PRUEBA, azarEnSerie());
+    assertIgual(plan.problemas, []);
+    assertIgual(plan.crear.map(function (c) {
+      return [c.usuario, c.nombre, c.rol, c.coordinacion_id, c.unidad_id, c.unidad, c.contrasena];
+    }), [
+      ['aperezl', 'ANA PÉREZ LÓPEZ', 'NUTRICION', 'COOR20', 'U065', 'CEAPS ACUITLAPILCO', 'abcdefghjk'],
+      ['jdelapenas', 'JUAN DE LA PEÑA SOTO', 'PSICOLOGIA', 'COOR09', 'U900', 'SAN FICTICIO', 'mnpqrstuvw'],
+      // misma persona con otro rol: otra cuenta, usuario con sufijo
+      ['aperezl2', 'ANA PEREZ LOPEZ', 'PSICOLOGIA', 'COOR09', 'U900', 'SAN FICTICIO', 'xyz2345678']
+    ]);
+  });
+
+  prueba('plan de personal: rol inválido, unidad sin cruzar y repetidos se reportan', function () {
+    var personal = [
+      { nombre: 'ANA PÉREZ LÓPEZ', rol: 'COORDINACION', unidad: 'SAN FICTICIO', clues: '', activo: 'TRUE' },
+      { nombre: 'ANA PÉREZ LÓPEZ', rol: 'DENTAL', unidad: 'SAN FICTICIO', clues: '', activo: 'TRUE' },
+      { nombre: 'JUAN PEÑA SOTO', rol: 'NUTRICION', unidad: 'CENTRO DE SALUD LA GEMELA', clues: '', activo: 'TRUE' },
+      { nombre: 'LUIS GIL RUIZ', rol: 'PROMOTOR', unidad: 'SAN FICTICIO', clues: '', activo: 'TRUE' },
+      { nombre: 'L.N. LUIS GIL RUIZ', rol: 'promotor', unidad: 'SAN FICTICIO', clues: '', activo: 'TRUE' },
+      { nombre: '', rol: 'NUTRICION', unidad: 'SAN FICTICIO', clues: '', activo: 'TRUE' },
+      { nombre: '— · —', rol: 'NUTRICION', unidad: 'SAN FICTICIO', clues: '', activo: 'TRUE' }
+    ];
+    var plan = planDeCuentasDePersonal(personal, [], UNIDADES_PRUEBA, azarEnSerie());
+    assertIgual(plan.crear.map(function (c) { return c.usuario; }), ['lgilr']);
+    // fila = renglón de la hoja PERSONAL (el 1 es el encabezado)
+    assertIgual(plan.problemas.map(function (p) { return p.fila; }), [2, 3, 4, 6, 7, 8]);
+    assertIgual(plan.problemas[5].motivo, 'nombre sin letras');
+  });
+
+  // --- La máscara con cuentas de persona (fase 7) --------------------------
+
+  var CUENTA_COORD = { usuario: 'chiautla', nombre: 'CHIAUTLA', coordinacion_id: 'COOR01',
+                       rol: 'COORDINACION', unidad_id: '' };
+  var CUENTA_PERSONA = { usuario: 'aperezl', nombre: 'ANA PÉREZ LÓPEZ', coordinacion_id: 'COOR20',
+                         rol: 'NUTRICION', unidad_id: 'U065' };
+
+  prueba('boleto de destino: el de una coordinación no cambió ni un byte', function () {
+    assertIgual(boletoParaDestino(CUENTA_COORD, 'sips', LUEGO, SECRETO),
+                'eyJjIjoiQ09PUjAxIiwidSI6ImNoaWF1dGxhIiwiZCI6InNpcHMiLCJ2IjoxNzkwMDAzNjAwMDAwLCJu' +
+                'IjoiQ0hJQVVUTEEifQ.32-Jip3MPdP13ZsBMWI1cDVyQRVhM7u75aJsZwvPgy4');
+    // Sin rol (cuenta de antes de la fase 7) es lo mismo.
+    assertIgual(boletoParaDestino({ usuario: 'chiautla', nombre: 'CHIAUTLA', coordinacion_id: 'COOR01' },
+                                  'sips', LUEGO, SECRETO),
+                boletoParaDestino(CUENTA_COORD, 'sips', LUEGO, SECRETO));
+  });
+
+  prueba('boleto de destino: el de una persona lleva su usuario, nombre, rol y unidad', function () {
+    var v = verificarBoleto(boletoParaDestino(CUENTA_PERSONA, 'atencion', LUEGO, SECRETO),
+                            SECRETO, 'atencion', AHORA);
+    assertIgual(v, { ok: true, coordinacion_id: 'COOR20', usuario: 'aperezl', destino: 'atencion',
+                     vence: LUEGO, nombre: 'ANA PÉREZ LÓPEZ', rol: 'NUTRICION', unidad_id: 'U065' });
+  });
+
+  prueba('datos del boleto: sonda de coordinación es "mascara", de persona es ella', function () {
+    assertIgual(datosDeBoletoDeSonda(CUENTA_COORD),
+                { usuario: 'mascara', nombre: 'CHIAUTLA', extra: null });
+    assertIgual(datosDeBoletoDeSonda(CUENTA_PERSONA),
+                { usuario: 'aperezl', nombre: 'ANA PÉREZ LÓPEZ',
+                  extra: { r: 'NUTRICION', x: 'U065' } });
+    assertIgual(datosDeBoletoParaDestino(CUENTA_COORD),
+                { usuario: 'chiautla', nombre: 'CHIAUTLA', extra: null });
+  });
+
+  prueba('boleto de sonda: coordinación igual que antes, persona con sus datos', function () {
+    assertIgual(boletoDeSonda(CUENTA_COORD, 'sips', LUEGO, SECRETO),
+                emitirBoleto('mascara', 'COOR01', 'sonda:sips', LUEGO, SECRETO, 'CHIAUTLA'));
+    var v = verificarBoleto(boletoDeSonda(CUENTA_PERSONA, 'atencion', LUEGO, SECRETO),
+                            SECRETO, 'sonda:atencion', AHORA);
+    assertIgual([v.usuario, v.rol, v.unidad_id], ['aperezl', 'NUTRICION', 'U065']);
+  });
+
+  prueba('clave de sonda: coordinación sin cambio, persona con su usuario', function () {
+    assertIgual([claveDeSonda('sips', CUENTA_COORD, 2026, 9),
+                 claveDeSonda('atencion', CUENTA_PERSONA, 2026, 9)],
+                ['sonda:sips:COOR01:2026-9', 'sonda:atencion:COOR20:aperezl:2026-9']);
+  });
+
+  prueba('nombre de la unidad por id: persona sí, coordinación vacío', function () {
+    var unidades = [{ unidad_id: 'U065', nombre_unidad: 'CEAPS ACUITLAPILCO' }];
+    assertIgual([nombreDeUnidadPorId(unidades, 'U065'), nombreDeUnidadPorId(unidades, ''),
+                 nombreDeUnidadPorId(unidades, 'U999')],
+                ['CEAPS ACUITLAPILCO', '', '']);
   });
 
   // Las tareas siguientes agregan sus pruebas aquí, antes de esta línea.

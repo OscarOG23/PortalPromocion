@@ -4,10 +4,36 @@ var HOJAS = {
   UNIDADES: 'CAT_UNIDADES',
   USUARIOS: 'USUARIOS',
   DESTINOS: 'DESTINOS',
+  PERSONAL: 'PERSONAL',
   AUDITORIA: 'AUDITORIA'
 };
 
 var PROPIEDAD_SECRETO = 'SECRETO_BOLETOS';
+
+// Perfil de la cuenta (columna `rol` de USUARIOS). Las coordinaciones son
+// cuentas compartidas; los demás perfiles son cuentas de persona.
+var ROLES = {
+  COORDINACION: 'COORDINACION',
+  NUTRICION: 'NUTRICION',
+  PSICOLOGIA: 'PSICOLOGIA',
+  PROMOTOR: 'PROMOTOR'
+};
+
+// Rol vacío = coordinación: las cuentas creadas antes de la fase 7 no lo
+// distinguían y todas eran de coordinación.
+function rolDeCuenta(fila) {
+  var rol = String((fila && fila.rol) || '').trim().toUpperCase();
+  return rol || ROLES.COORDINACION;
+}
+
+// Una cuenta sirve solo con un rol conocido. Rol vacío vale como coordinación
+// únicamente si tampoco tiene unidad: con unidad_id es una persona a la que
+// se le borró el rol, y no debe entrar viendo lo de su coordinación.
+function cuentaConRolValido(fila) {
+  if (!fila) return false;
+  if (!String(fila.rol || '').trim()) return !String(fila.unidad_id || '').trim();
+  return Object.prototype.hasOwnProperty.call(ROLES, rolDeCuenta(fila));
+}
 
 function getConfig(clave) {
   var filas = leerCatalogo(HOJAS.CONFIG);

@@ -20,19 +20,55 @@ var VALORES_SONDA = ['', 'NINGUNA', SONDA_NATIVA];
 // (destino, coordinacion, anio, mes) y devuelve { ok, reportado }.
 var SONDAS = {};
 
-// Vacío no aplica a nadie: una celda olvidada deja un destino fuera, nunca
-// se lo muestra a las 22 coordinaciones por accidente.
-function _aplicaA(destino, coordinacionId) {
-  var lista = String(destino.aplica_a || '').trim();
-  if (lista.toUpperCase() === 'TODAS') return true;
-  return lista.split(',').map(function (s) { return s.trim(); })
-              .indexOf(coordinacionId) !== -1;
+var PREFIJO_ROL = 'ROL:';
+
+function _listaAplicaA(destino) {
+  return String(destino.aplica_a || '').split(',')
+    .map(function (s) { return s.trim(); })
+    .filter(function (s) { return s; });
 }
 
-function destinosDeCoordinacion(filas, coordinacionId) {
+// 'ROL: Nutrición' se lee 'ROL:NUTRICION'. Devuelve null si la entrada no
+// es de rol. Una sola normalización para filtrar y para avisar.
+function _entradaDeRol(s) {
+  var t = sinAcentos(String(s)).toUpperCase().replace(/\s+/g, '');
+  return t.indexOf(PREFIJO_ROL) === 0 ? t : null;
+}
+
+// TODAS vale solo si es la celda entera; dentro de una lista no cuenta (y
+// verificarDestinos lo avisa).
+function _esTodas(destino) {
+  return String(destino.aplica_a || '').trim().toUpperCase() === 'TODAS';
+}
+
+// Vacío no aplica a nadie: una celda olvidada deja un destino fuera, nunca
+// se lo muestra a las 22 coordinaciones por accidente.
+//
+// Dos mundos que no se cruzan: una coordinación ve `TODAS` y las listas que
+// incluyan su COORxx, nunca un `ROL:*`; una persona (nutrición, psicología…)
+// ve solo las listas que incluyan `ROL:<su rol>`, nunca `TODAS` ni un COORxx.
+// `cuenta` = { rol, coordinacion_id }; una cadena se toma como coordinacion_id
+// de una coordinación (así lo llamaban las fases anteriores).
+function _aplicaA(destino, cuenta) {
+  if (typeof cuenta === 'string') cuenta = { rol: ROLES.COORDINACION, coordinacion_id: cuenta };
+  var rol = rolDeCuenta(cuenta);
+  var lista = _listaAplicaA(destino);
+  if (rol === ROLES.COORDINACION) {
+    if (_esTodas(destino)) return true;
+    return lista.indexOf(cuenta.coordinacion_id) !== -1;
+  }
+  return lista.some(function (s) { return _entradaDeRol(s) === PREFIJO_ROL + rol; });
+}
+
+function destinosDeCuenta(filas, cuenta) {
   return filas
-    .filter(function (d) { return esVerdadero(d.activo) && _aplicaA(d, coordinacionId); })
+    .filter(function (d) { return esVerdadero(d.activo) && _aplicaA(d, cuenta); })
     .sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); });
+}
+
+// Alias de las fases anteriores: una coordinación por su id.
+function destinosDeCoordinacion(filas, coordinacionId) {
+  return destinosDeCuenta(filas, { rol: ROLES.COORDINACION, coordinacion_id: coordinacionId });
 }
 
 // Lista de lo que está mal en una fila, en palabras. Vacía = fila utilizable.
@@ -66,6 +102,28 @@ function problemasDeDestino(d) {
     p.push('un formulario no contesta sondas nativas');
   }
   return p;
+}
+
+// Lo que conviene corregir en aplica_a pero NO bloquea la fila: un rol
+// desconocido no debe quitarles el enlace a los demás. Solo lo registra
+// verificarDestinos().
+function advertenciasDeDestino(d) {
+  var a = [];
+  var lista = _listaAplicaA(d);
+  lista.forEach(function (s) {
+    var entrada = _entradaDeRol(s);
+    if (entrada === null) {
+      if (s.toUpperCase() === 'TODAS' && lista.length > 1) {
+        a.push('TODAS dentro de una lista no cuenta: debe ir sola en la celda');
+      }
+      return;
+    }
+    var rol = entrada.slice(PREFIJO_ROL.length);
+    if (!Object.prototype.hasOwnProperty.call(ROLES, rol) || rol === ROLES.COORDINACION) {
+      a.push('rol desconocido en aplica_a: "' + s + '"');
+    }
+  });
+  return a;
 }
 
 function _valorDeIdentidad(destino, coordinacion) {
@@ -122,10 +180,65 @@ function estadoDeDestino(destino, coordinacion, anio, mes, sondas) {
   return consultarSonda(function () { return registro[nombre](destino, coordinacion, anio, mes); });
 }
 
+// --- Boletos por cuenta ---------------------------------------------------
+// cuenta = { usuario, nombre, coordinacion_id, rol, unidad_id } (la de
+// _cuentaPublica). Una coordinación recibe los boletos de siempre, byte a
+// byte; una persona además lleva r = rol y x = unidad_id.
+
+function _esPersona(cuenta) {
+  return rolDeCuenta(cuenta) !== ROLES.COORDINACION;
+}
+
+function _extraDePersona(cuenta) {
+  return _esPersona(cuenta) ? { r: rolDeCuenta(cuenta), x: String(cuenta.unidad_id || '') } : null;
+}
+
+function datosDeBoletoParaDestino(cuenta) {
+  return { usuario: cuenta.usuario, nombre: cuenta.nombre, extra: _extraDePersona(cuenta) };
+}
+
+// La sonda de una coordinación pregunta como 'mascara' por toda la
+// coordinación; la de una persona pregunta por ella misma.
+function datosDeBoletoDeSonda(cuenta) {
+  return { usuario: _esPersona(cuenta) ? cuenta.usuario : 'mascara', nombre: cuenta.nombre,
+           extra: _extraDePersona(cuenta) };
+}
+
+function boletoParaDestino(cuenta, destinoId, vence, secreto) {
+  var d = datosDeBoletoParaDestino(cuenta);
+  return emitirBoleto(d.usuario, cuenta.coordinacion_id, destinoId, vence, secreto, d.nombre,
+                      d.extra || undefined);
+}
+
+function boletoDeSonda(cuenta, destinoId, vence, secreto) {
+  var d = datosDeBoletoDeSonda(cuenta);
+  return emitirBoleto(d.usuario, cuenta.coordinacion_id, 'sonda:' + destinoId, vence, secreto,
+                      d.nombre, d.extra || undefined);
+}
+
+// La respuesta de una persona depende de ELLA, no de su coordinación: su
+// clave de caché lleva su usuario. La de una coordinación no cambia.
+function claveDeSonda(destinoId, cuenta, anio, mes) {
+  var periodo = anio + '-' + mes;
+  if (_esPersona(cuenta)) {
+    return 'sonda:' + destinoId + ':' + cuenta.coordinacion_id + ':' + cuenta.usuario + ':' + periodo;
+  }
+  return 'sonda:' + destinoId + ':' + cuenta.coordinacion_id + ':' + periodo;
+}
+
+function nombreDeUnidadPorId(unidades, unidadId) {
+  if (!unidadId) return '';
+  for (var i = 0; i < unidades.length; i++) {
+    if (String(unidades[i].unidad_id) === String(unidadId)) return String(unidades[i].nombre_unidad || '');
+  }
+  return '';
+}
+
 // --- Sondas nativas -------------------------------------------------------
 // Protocolo con los hermanos (ver docs/superpowers/specs/2026-09-21-fase-5-
 // sondas-design.md): GET <url>?sonda=<boleto>&anio=<AAAA>&mes=<1-12>, boleto
-// de destino 'sonda:' + destino_id, vida de 5 minutos, usuario 'mascara'.
+// de destino 'sonda:' + destino_id, vida de 5 minutos, usuario 'mascara'
+// (para una persona, su propio usuario, con r y x: fase 7).
 // Responden JSON { ok:true, reportado:<bool>, ... } o { ok:false, code }.
 
 function urlDeSonda(destino, boleto, anio, mes) {
@@ -148,7 +261,8 @@ var CACHE_SONDA_SEG = 600;
 // Pregunta a todos los hermanos NATIVA a la vez (fetchAll) y guarda en caché
 // 10 minutos cada respuesta clara. Devuelve { destino_id: estado }; lo que no
 // conteste claro queda NO_SE_SABE. Cualquier falla general: todos gris.
-function consultarSondasNativas_(destinos, coordinacion, anio, mes, secreto) {
+// cuenta: ver "Boletos por cuenta".
+function consultarSondasNativas_(destinos, cuenta, anio, mes, secreto) {
   var estados = {};
   var nativos = destinos.filter(function (d) {
     return String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA && !problemasDeDestino(d).length;
@@ -160,11 +274,10 @@ function consultarSondasNativas_(destinos, coordinacion, anio, mes, secreto) {
     var pendientes = [];
     nativos.forEach(function (d) {
       var id = String(d.destino_id).trim();
-      var clave = 'sonda:' + id + ':' + coordinacion.coordinacion_id + ':' + anio + '-' + mes;
+      var clave = claveDeSonda(id, cuenta, anio, mes);
       var guardado = cache.get(clave);
       if (guardado) { estados[id] = guardado; return; }
-      var boleto = emitirBoleto('mascara', coordinacion.coordinacion_id, 'sonda:' + id, vence, secreto,
-                                coordinacion.nombre);
+      var boleto = boletoDeSonda(cuenta, id, vence, secreto);
       pendientes.push({ id: id, clave: clave, url: urlDeSonda(d, boleto, anio, mes) });
     });
     if (!pendientes.length) return estados;
