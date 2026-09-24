@@ -114,13 +114,20 @@ function sacudir(nodoASacudir) {
   nodoASacudir.classList.add('sacudir');
 }
 
+function ponerTexto(id, texto) {
+  var nodo = el(id);
+  if (nodo) nodo.textContent = texto;
+}
+
 // --- Portal -------------------------------------------------------------------
 
 function pintarPortal(ctx) {
   var textos = textosDeCuenta(ctx.usuario);
-  el('cabecera-sobre').textContent = textos.sobre;
-  el('identidad').textContent = ctx.usuario.nombre;
-  el('sin-destinos-texto').textContent = textos.vacio;
+  // Con una página vieja en caché estos elementos pueden no existir todavía:
+  // se escribe solo en los que estén, para que el portal nunca se quede trabado.
+  ponerTexto('cabecera-sobre', textos.sobre);
+  ponerTexto('identidad', ctx.usuario.nombre);
+  ponerTexto('sin-destinos-texto', textos.vacio);
 
   var mes = parseInt(ctx.periodo.mes, 10);
   var periodo = el('periodo');
