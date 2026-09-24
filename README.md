@@ -15,6 +15,22 @@ capturador ya identificada. Diseño: `docs/superpowers/specs/2026-09-21-mascara-
 
 Una fila en `DESTINOS` y luego `verificarDestinos()` en el editor. No se toca código.
 
+Si la pantalla del capturador no vive en `script.google.com` (p. ej. está en GitHub Pages), la sonda
+`NATIVA` necesita la columna `url_sonda` con el `/exec` del Apps Script: el botón abre `url` y la
+sonda pregunta a `url_sonda`. En una hoja anterior, agregar la columna con `agregarColumnaUrlSondaADestinos()`.
+Para llevar a la hoja las direcciones de `DESTINOS_CONOCIDOS` (solo `url` y `url_sonda`): `actualizarDestinosConocidos()`.
+
+## Pantalla de Atención (`web/atencion/`)
+
+La pantalla del capturador de Atención (repo privado `ATENCION`) se sirve desde aquí, en
+`https://oscarog23.github.io/PortalPromocion/atencion/`, por el mismo defecto de Android Chrome con
+`script.google.com`. Es la de `ATENCION/src/Index.html` con dos cambios: lee el boleto con
+`URLSearchParams` y lo borra de la barra de direcciones, y en vez de `google.script.run` manda POST
+`{accion, args}` (text/plain) al `/exec` de Atención, cuya URL está en `web/atencion/config.js`.
+La sesión de la pestaña se guarda en `sessionStorage` con el prefijo `atencion:`.
+Aquí no hay datos ni secretos: todo lo valida el Apps Script de Atención. Al cambiar un archivo,
+subir el `?v=` de `web/atencion/index.html`.
+
 ## Publicar una versión nueva del Apps Script
 
 `clasp push --force` y `clasp update-deployment <deploymentId>`: la URL `/exec` no cambia.

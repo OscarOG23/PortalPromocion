@@ -101,7 +101,20 @@ function problemasDeDestino(d) {
   if (sonda === SONDA_NATIVA && clase === CLASES_DESTINO.FORMULARIO) {
     p.push('un formulario no contesta sondas nativas');
   }
+  var urlSonda = String(d.url_sonda || '').trim();
+  if (urlSonda && urlSonda.indexOf('https://') !== 0) p.push('la url_sonda debe empezar con https://');
+  if (urlSonda.indexOf('#') !== -1) p.push('la url_sonda no debe llevar #');
+  // Un hermano cuya pantalla vive fuera de Apps Script (GitHub Pages) no
+  // contesta la sonda en `url`: hay que decir dónde preguntar.
+  if (sonda === SONDA_NATIVA && clase !== CLASES_DESTINO.FORMULARIO && !urlSonda &&
+      !esUrlDeAppsScript(d.url)) {
+    p.push('sonda NATIVA sin url_sonda');
+  }
   return p;
+}
+
+function esUrlDeAppsScript(url) {
+  return /^https:\/\/script\.google\.com\//.test(String(url || '').trim());
 }
 
 // Lo que conviene corregir en aplica_a pero NO bloquea la fila: un rol
@@ -236,13 +249,16 @@ function nombreDeUnidadPorId(unidades, unidadId) {
 
 // --- Sondas nativas -------------------------------------------------------
 // Protocolo con los hermanos (ver docs/superpowers/specs/2026-09-21-fase-5-
-// sondas-design.md): GET <url>?sonda=<boleto>&anio=<AAAA>&mes=<1-12>, boleto
+// sondas-design.md): GET <url_sonda o url>?sonda=<boleto>&anio=<AAAA>&mes=<1-12>, boleto
 // de destino 'sonda:' + destino_id, vida de 5 minutos, usuario 'mascara'
 // (para una persona, su propio usuario, con r y x: fase 7).
 // Responden JSON { ok:true, reportado:<bool>, ... } o { ok:false, code }.
 
+// Columna opcional `url_sonda`: el botón abre `url` (p. ej. la pantalla en
+// GitHub Pages) y la sonda pregunta al /exec de Apps Script. Vacía = `url`.
 function urlDeSonda(destino, boleto, anio, mes) {
-  return _conParametros(String(destino.url).trim(), [['sonda', boleto], ['anio', anio], ['mes', mes]]);
+  var base = String(destino.url_sonda || '').trim() || String(destino.url).trim();
+  return _conParametros(base, [['sonda', boleto], ['anio', anio], ['mes', mes]]);
 }
 
 // Solo un 200 con JSON { ok: true, reportado: <booleano> } dice algo. Una

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- La dirección llega con el boleto: que no se filtre en el Referer. -->
+  <meta name="referrer" content="no-referrer">
+  <!-- style-src 'unsafe-inline': la pantalla pone algunos style="" sueltos; los scripts siguen solo de 'self'.
+       img-src blob: para leer las fotos antes de reducirlas. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <meta name="theme-color" content="#9F2241">
+  <meta name="color-scheme" content="light dark">
+  <title>Atención — Nutrición y Psicología</title>
+  <link rel="stylesheet" href="estilos.css?v=20260924a">
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-pulso" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+    <symbol id="i-listo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-equis" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></symbol>
+    <symbol id="i-guion" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></symbol>
+    <symbol id="i-aviso" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-candado" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-lapiz" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></symbol>
+    <symbol id="i-archivo" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></symbol>
+    <symbol id="i-imagen" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+    <symbol id="i-subir" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></symbol>
+    <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M14.54 21.69a.5.5 0 0 0 .94-.03l6.5-19a.5.5 0 0 0-.64-.64l-19 6.5a.5.5 0 0 0-.03.94l7.93 3.18a2 2 0 0 1 1.11 1.11z"/><path d="m21.85 2.15-10.94 10.94"/></symbol>
+    <symbol id="i-historial" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></symbol>
+  </svg>
+
+  <main>
+    <!-- Carga ------------------------------------------------------------- -->
+    <div id="cargando" class="vista" role="status" aria-label="Cargando">
+      <div class="esq" style="height:200px;margin:0 -16px;border-radius:0 0 28px 28px"></div>
+      <div class="esq"></div><div class="esq"></div><div class="esq"></div>
+    </div>
+
+    <!-- Entrada (sin boleto, sesión vencida, sin conexión) ---------------- -->
+    <section id="entrada" class="vista vista-entrada" hidden aria-labelledby="titulo-entrada">
+      <div class="marca">
+        <span class="marca-icono"><svg><use href="#i-pulso"/></svg></span>
+        <span>ISEM · Jurisdicción Sanitaria XIX Texcoco</span>
+      </div>
+      <div class="tarjeta-entrada">
+        <h1 id="titulo-entrada">Informe mensual de Atención</h1>
+        <p id="entrada-msg" role="alert"></p>
+        <button id="btn-reintentar-entrada" class="btn-principal" type="button" hidden>Intentar de nuevo</button>
+      </div>
+      <p class="pie">Instituto de Salud del Estado de México</p>
+    </section>
+
+    <!-- Informe del mes ---------------------------------------------------- -->
+    <section id="vista-informe" class="vista" hidden aria-labelledby="persona">
+      <header class="cabecera">
+        <span class="cabecera-marca"><svg aria-hidden="true"><use href="#i-pulso"/></svg>Informe mensual de Atención</span>
+        <h1 id="persona" tabindex="-1"></h1>
+        <p id="disciplina" class="cabecera-sobre"></p>
+        <div class="selector-mes">
+          <label for="mes">Mes que reporta</label>
+          <select id="mes"></select>
+        </div>
+      </header>
+
+      <div id="estado-informe" class="estado-informe" role="status" aria-live="polite" hidden></div>
+      <p id="error-carga" class="error" role="alert"></p>
+      <button id="btn-reintentar-carga" class="btn-secundario" type="button" hidden style="margin-top:12px">Intentar de nuevo</button>
+      <div id="carga-mes" hidden><div class="esq"></div><div class="esq" style="height:220px"></div><div class="esq" style="height:160px"></div></div>
+
+      <div id="contenido" hidden>
+        <form id="form-informe" novalidate>
+          <div id="modulo"></div>
+          <div id="alertas" role="status" aria-live="polite"></div>
+          <p id="error-guardar" class="error" role="alert"></p>
+          <div id="guardado" role="status" aria-live="polite"></div>
+          <div id="acciones-guardar" class="acciones-guardar">
+            <button id="btn-guardar" class="btn-secundario" type="submit" aria-busy="false">
+              <span class="giro oscuro" hidden aria-hidden="true"></span><span>Guardar borrador</span>
+            </button>
+          </div>
+        </form>
+
+        <div class="apartado" aria-labelledby="titulo-evidencias">
+          <h2 id="titulo-evidencias">Evidencias</h2>
+          <ul id="pistas" class="pistas"></ul>
+          <ul id="evidencias" class="evidencias" aria-labelledby="titulo-evidencias"></ul>
+          <input id="archivo" type="file" accept="application/pdf,image/*" multiple class="solo-lector" tabindex="-1" aria-hidden="true">
+          <button id="btn-evidencia" class="btn-secundario" type="button" style="margin-top:10px">
+            <svg aria-hidden="true"><use href="#i-subir"/></svg><span>Agregar PDF o foto</span>
+          </button>
+          <p id="nota-evidencias" class="nota"></p>
+          <p id="error-evidencias" class="error" role="alert"></p>
+        </div>
+
+        <div id="envio" class="envio">
+          <div id="pendientes" class="pendientes" aria-live="polite"></div>
+          <button id="btn-enviar" class="btn-principal" type="button" aria-busy="false" aria-describedby="nota-envio" style="margin-top:16px">
+            <span class="giro" aria-hidden="true"></span><svg aria-hidden="true"><use href="#i-enviar"/></svg><span>Enviar informe</span>
+          </button>
+          <p id="nota-envio" class="nota"></p>
+          <p id="error-enviar" class="error" role="alert"></p>
+        </div>
+      </div>
+
+      <p class="pie">Instituto de Salud del Estado de México · Jurisdicción Sanitaria XIX Texcoco</p>
+    </section>
+  </main>
+  <script src="config.js?v=20260924a"></script>
+  <script src="app.js?v=20260924a"></script>
+</body>
+</html>

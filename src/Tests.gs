@@ -392,6 +392,71 @@ function registrarPruebas() {
                  null, null, null, null]);
   });
 
+  // --- url_sonda: pantalla fuera de Apps Script, sonda en el /exec ----------
+
+  var EXEC_X = 'https://script.google.com/macros/s/X/exec';
+  var PAGES_X = 'https://ejemplo.github.io/Portal/x/';
+
+  prueba('url_sonda: la sonda usa url_sonda si la hay; si no, url', function () {
+    var con = destino({ clase: 'HERMANO_CON_CONTRASENA', url: PAGES_X, url_sonda: EXEC_X });
+    var vacia = destino({ clase: 'HERMANO_CON_CONTRASENA', url: EXEC_X, url_sonda: '  ' });
+    var sin = destino({ clase: 'HERMANO_CON_CONTRASENA', url: EXEC_X });
+    assertIgual([urlDeSonda(con, 'AAA.BBB', 2026, 9), urlDeSonda(vacia, 'AAA.BBB', 2026, 9),
+                 urlDeSonda(sin, 'AAA.BBB', 2026, 9)],
+                [EXEC_X + '?sonda=AAA.BBB&anio=2026&mes=9', EXEC_X + '?sonda=AAA.BBB&anio=2026&mes=9',
+                 EXEC_X + '?sonda=AAA.BBB&anio=2026&mes=9']);
+  });
+
+  prueba('url_sonda: el botón sigue abriendo url', function () {
+    var d = destino({ clase: 'HERMANO_CON_CONTRASENA', param_identidad: '', url: PAGES_X, url_sonda: EXEC_X,
+                      sonda: 'NATIVA' });
+    assertIgual(enlaceDeDestino(d, COORD_14, 'AAA.BBB'), PAGES_X + '?boleto=AAA.BBB');
+  });
+
+  prueba('url_sonda: NATIVA fuera de script.google.com la exige', function () {
+    var base = { clase: 'HERMANO_CON_CONTRASENA', param_identidad: '', sonda: 'NATIVA' };
+    function con(campos) { return destino(Object.assign({}, base, campos)); }
+    assertIgual([problemasDeDestino(con({ url: PAGES_X })),
+                 problemasDeDestino(con({ url: PAGES_X, url_sonda: EXEC_X })),
+                 problemasDeDestino(con({ url: EXEC_X })),
+                 problemasDeDestino(con({ url: PAGES_X, sonda: 'NINGUNA' })),
+                 problemasDeDestino(con({ url: PAGES_X, url_sonda: 'http://x.com/exec' })),
+                 problemasDeDestino(con({ url: PAGES_X, url_sonda: EXEC_X + '#a' }))],
+                [['sonda NATIVA sin url_sonda'], [], [], [],
+                 ['la url_sonda debe empezar con https://'], ['la url_sonda no debe llevar #']]);
+  });
+
+  prueba('url_sonda: la columna va al final de DESTINOS', function () {
+    var destinos = _esquema().filter(function (par) { return par[0] === HOJAS.DESTINOS; })[0][1];
+    assertIgual(destinos.slice(-2), ['activo', 'url_sonda']);
+  });
+
+  prueba('destinos conocidos: todos sirven; atención abre Pages y sondea el /exec', function () {
+    DESTINOS_CONOCIDOS.forEach(function (d) { assertIgual(problemasDeDestino(d), [], d.destino_id); });
+    var a = DESTINOS_CONOCIDOS.filter(function (d) { return d.destino_id === 'atencion'; })[0];
+    assertIgual(a.url, 'https://oscarog23.github.io/PortalPromocion/atencion/');
+    assertIgual(esUrlDeAppsScript(a.url_sonda), true);
+    assertIgual(urlDeSonda(a, 'B', 2026, 9).indexOf(a.url_sonda + '?sonda=B'), 0);
+  });
+
+  prueba('destinos conocidos: copiar url y url_sonda solo a las filas listadas, una vez', function () {
+    var filas = [
+      { destino_id: 'atencion', nombre: 'Editado a mano', url: EXEC_X, url_sonda: '', sonda: 'NATIVA', orden: 9 },
+      { destino_id: 'otro', nombre: 'Otro', url: EXEC_X, url_sonda: '' },
+      { destino_id: ' sips ', url: 'https://viejo.example/exec' }
+    ];
+    var conocidos = [{ destino_id: 'atencion', url: PAGES_X, url_sonda: EXEC_X, nombre: 'N', orden: 5 },
+                     { destino_id: 'sips', url: EXEC_X }];
+    assertIgual(copiarUrlsConocidas(filas, conocidos),
+                ['atencion.url -> ' + PAGES_X, 'atencion.url_sonda -> ' + EXEC_X, 'sips.url -> ' + EXEC_X]);
+    assertIgual(filas, [
+      { destino_id: 'atencion', nombre: 'Editado a mano', url: PAGES_X, url_sonda: EXEC_X, sonda: 'NATIVA', orden: 9 },
+      { destino_id: 'otro', nombre: 'Otro', url: EXEC_X, url_sonda: '' },
+      { destino_id: ' sips ', url: EXEC_X }
+    ]);
+    assertIgual(copiarUrlsConocidas(filas, conocidos), []);
+  });
+
   // --- Perfiles (fase 7) --------------------------------------------------
 
   function idsDe(lista) { return lista.map(function (d) { return d.destino_id; }); }

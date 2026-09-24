@@ -13,8 +13,9 @@ function _esquema() {
     [HOJAS.USUARIOS, ['usuario', 'nombre', 'rol', 'coordinacion_id', 'sal', 'huella', 'activo',
                       'unidad_id']],
     [HOJAS.PERSONAL, ['nombre', 'rol', 'unidad', 'clues', 'activo']],
+    // url_sonda va AL FINAL, por lo mismo que unidad_id.
     [HOJAS.DESTINOS, ['destino_id', 'nombre', 'apartado', 'clase', 'url', 'aplica_a',
-                      'param_identidad', 'valor_identidad', 'sonda', 'orden', 'activo']],
+                      'param_identidad', 'valor_identidad', 'sonda', 'orden', 'activo', 'url_sonda']],
     [HOJAS.AUDITORIA, ['timestamp', 'usuario', 'accion', 'detalle']]
   ];
 }
@@ -105,6 +106,34 @@ function agregarColumnaUnidadAUsuarios() {
   hoja.getRange(1, ultima + 1).setValue('unidad_id').setFontWeight('bold');
   invalidarCatalogo(HOJAS.USUARIOS);
   Logger.log('USUARIOS — columna unidad_id agregada');
+}
+
+// Para la hoja DESTINOS que ya existía: agrega la columna url_sonda al final
+// (vacía en todas las filas). Correrla dos veces no hace nada la segunda.
+function agregarColumnaUrlSondaADestinos() {
+  var hoja = SpreadsheetApp.getActive().getSheetByName(HOJAS.DESTINOS);
+  if (!hoja) throw new Error('Falta la hoja DESTINOS. Ejecute setupDatabase() primero.');
+  var ultima = hoja.getLastColumn();
+  var encabezados = hoja.getRange(1, 1, 1, ultima).getValues()[0];
+  if (encabezados.indexOf('url_sonda') !== -1) {
+    Logger.log('DESTINOS ya tenía url_sonda; no se cambió nada');
+    return;
+  }
+  hoja.getRange(1, ultima + 1).setValue('url_sonda').setFontWeight('bold');
+  invalidarCatalogo(HOJAS.DESTINOS);
+  Logger.log('DESTINOS — columna url_sonda agregada');
+}
+
+// escribirFilas descarta en silencio las columnas que la hoja no tiene: sin
+// url_sonda, un destino con la pantalla en GitHub Pages quedaría sin sonda.
+function _exigirColumnaUrlSonda() {
+  var hoja = SpreadsheetApp.getActive().getSheetByName(HOJAS.DESTINOS);
+  if (!hoja) throw new Error('Falta la hoja DESTINOS. Ejecute setupDatabase() primero.');
+  var encabezados = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+  if (encabezados.indexOf('url_sonda') === -1) {
+    throw new Error('La hoja DESTINOS no tiene la columna "url_sonda". ' +
+                    'Ejecute agregarColumnaUrlSondaADestinos() primero.');
+  }
 }
 
 // Crea una cuenta por coordinación. CORRERLA DE NUEVO NO reactiva una baja:
@@ -320,14 +349,17 @@ var DESTINOS_CONOCIDOS = [
     clase: 'HERMANO_CON_CONTRASENA',
     url: 'https://script.google.com/macros/s/AKfycby-mX_9mqg4rBXYb9uPj9bJHuVao8D2JCByOpqkup9Q2_lvMOpnLT7GTvKgekSEAs6I/exec',
     aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 4, activo: 'TRUE' },
-  // Solo para cuentas de persona: nutriólogos y psicólogos.
+  // Solo para cuentas de persona: nutriólogos y psicólogos. La pantalla vive
+  // en GitHub Pages (web/atencion/); la sonda sigue en el /exec de Apps Script.
   { destino_id: 'atencion', nombre: 'Informe mensual de Atención', apartado: 'Reporte mensual',
     clase: 'HERMANO_CON_CONTRASENA',
-    url: 'https://script.google.com/macros/s/AKfycbz0nx2wMg9Xqm0dhOsv621qXu6F_2fP9hDqMFkrIiFK8T_DAaM4Kgvr6xXxo5Hj1Q6mWA/exec',
+    url: 'https://oscarog23.github.io/PortalPromocion/atencion/',
+    url_sonda: 'https://script.google.com/macros/s/AKfycbz0nx2wMg9Xqm0dhOsv621qXu6F_2fP9hDqMFkrIiFK8T_DAaM4Kgvr6xXxo5Hj1Q6mWA/exec',
     aplica_a: 'ROL:NUTRICION,ROL:PSICOLOGIA', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 5, activo: 'TRUE' }
 ];
 
 function sembrarDestinosConocidos() {
+  _exigirColumnaUrlSonda();
   var existentes = {};
   leerTabla(HOJAS.DESTINOS).forEach(function (d) { existentes[String(d.destino_id).trim()] = true; });
   var faltan = DESTINOS_CONOCIDOS.filter(function (d) { return !existentes[d.destino_id]; });
@@ -355,5 +387,40 @@ function activarSondasConocidas() {
   if (cambiadas.length) reemplazarFilas(HOJAS.DESTINOS, filas);
   invalidarCatalogo(HOJAS.DESTINOS);
   Logger.log(cambiadas.length ? 'sondas: ' + cambiadas.join(', ') : 'no había nada que cambiar');
+  verificarDestinos();
+}
+
+// Puro: copia `url` y `url_sonda` de `conocidos` a las filas con el mismo
+// destino_id, sin tocar ninguna otra columna ni ninguna otra fila. Cambia
+// `filas` en su lugar y devuelve la lista de cambios, en palabras.
+function copiarUrlsConocidas(filas, conocidos) {
+  var esperado = {};
+  conocidos.forEach(function (d) { esperado[d.destino_id] = d; });
+  var cambios = [];
+  filas.forEach(function (f) {
+    var id = String(f.destino_id).trim();
+    if (!Object.prototype.hasOwnProperty.call(esperado, id)) return;
+    ['url', 'url_sonda'].forEach(function (col) {
+      var nuevo = String(esperado[id][col] || '');
+      if (String(f[col] === undefined || f[col] === null ? '' : f[col]).trim() !== nuevo) {
+        f[col] = nuevo;
+        cambios.push(id + '.' + col + ' -> ' + (nuevo || '(vacía)'));
+      }
+    });
+  });
+  return cambios;
+}
+
+// Correr desde el botón Ejecutar cuando cambie la dirección de un capturador
+// (p. ej. Atención pasó a GitHub Pages): copia `url` y `url_sonda` de
+// DESTINOS_CONOCIDOS a las filas que ya existen en DESTINOS. Correrla dos
+// veces no cambia nada la segunda.
+function actualizarDestinosConocidos() {
+  _exigirColumnaUrlSonda();
+  var filas = leerTabla(HOJAS.DESTINOS);
+  var cambios = copiarUrlsConocidas(filas, DESTINOS_CONOCIDOS);
+  if (cambios.length) reemplazarFilas(HOJAS.DESTINOS, filas);
+  invalidarCatalogo(HOJAS.DESTINOS);
+  Logger.log(cambios.length ? 'cambios: ' + cambios.join(', ') : 'no había nada que cambiar');
   verificarDestinos();
 }
