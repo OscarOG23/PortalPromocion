@@ -1,0 +1,105 @@
+{
+  "planPath": "docs/superpowers/plans/2026-09-24-fase-7-perfiles-y-atencion.md",
+  "tasks": [
+    {
+      "id": 0,
+      "subject": "A1 Roles y aplica_a",
+      "status": "pending",
+      "description": "Ver plan, Task A1"
+    },
+    {
+      "id": 1,
+      "subject": "A2 Boleto con rol y unidad",
+      "status": "pending",
+      "description": "Ver plan, Task A2",
+      "blockedBy": [
+        0
+      ]
+    },
+    {
+      "id": 2,
+      "subject": "A3 Cuentas de persona",
+      "status": "pending",
+      "description": "Ver plan, Task A3",
+      "blockedBy": [
+        0
+      ]
+    },
+    {
+      "id": 3,
+      "subject": "A4 Contexto, sondas y pantalla",
+      "status": "pending",
+      "description": "Ver plan, Task A4",
+      "blockedBy": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": 4,
+      "subject": "A5 Despliegue mascara",
+      "status": "pending",
+      "description": "Ver plan, Task A5",
+      "blockedBy": [
+        3
+      ]
+    },
+    {
+      "id": 5,
+      "subject": "B0 Esqueleto Atencion",
+      "status": "pending",
+      "description": "Ver plan, Task B0",
+      "blockedBy": [
+        1
+      ]
+    },
+    {
+      "id": 6,
+      "subject": "B1 Modelo y reglas",
+      "status": "pending",
+      "description": "Ver plan, Task B1",
+      "blockedBy": [
+        5
+      ]
+    },
+    {
+      "id": 7,
+      "subject": "B2 Importacion historico",
+      "status": "pending",
+      "description": "Ver plan, Task B2",
+      "blockedBy": [
+        6
+      ]
+    },
+    {
+      "id": 8,
+      "subject": "B3 Servidor",
+      "status": "pending",
+      "description": "Ver plan, Task B3",
+      "blockedBy": [
+        6,
+        7
+      ]
+    },
+    {
+      "id": 9,
+      "subject": "B4 Pantalla",
+      "status": "pending",
+      "description": "Ver plan, Task B4",
+      "blockedBy": [
+        8
+      ]
+    },
+    {
+      "id": 10,
+      "subject": "B5 Despliegue e importacion",
+      "status": "pending",
+      "description": "Ver plan, Task B5",
+      "blockedBy": [
+        4,
+        9
+      ]
+    }
+  ],
+  "lastUpdated": "2026-09-24T05:44:08.643331"
+}
