@@ -4,13 +4,13 @@
     {
       "id": 0,
       "subject": "A1 Roles y aplica_a",
-      "status": "pending",
+      "status": "completed",
       "description": "Ver plan, Task A1"
     },
     {
       "id": 1,
       "subject": "A2 Boleto con rol y unidad",
-      "status": "pending",
+      "status": "completed",
       "description": "Ver plan, Task A2",
       "blockedBy": [
         0
@@ -19,7 +19,7 @@
     {
       "id": 2,
       "subject": "A3 Cuentas de persona",
-      "status": "pending",
+      "status": "completed",
       "description": "Ver plan, Task A3",
       "blockedBy": [
         0
@@ -28,7 +28,7 @@
     {
       "id": 3,
       "subject": "A4 Contexto, sondas y pantalla",
-      "status": "pending",
+      "status": "completed",
       "description": "Ver plan, Task A4",
       "blockedBy": [
         1,
@@ -38,7 +38,7 @@
     {
       "id": 4,
       "subject": "A5 Despliegue mascara",
-      "status": "pending",
+      "status": "completed",
       "description": "Ver plan, Task A5",
       "blockedBy": [
         3
@@ -101,5 +101,5 @@
       ]
     }
   ],
-  "lastUpdated": "2026-09-24T05:44:08.643331"
+  "lastUpdated": "2026-09-24T06:01:12.753410"
 }

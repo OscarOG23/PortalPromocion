@@ -319,7 +319,12 @@ var DESTINOS_CONOCIDOS = [
   { destino_id: 'actividad_fisica', nombre: 'Reporte de Actividad Física', apartado: 'Reporte mensual',
     clase: 'HERMANO_CON_CONTRASENA',
     url: 'https://script.google.com/macros/s/AKfycby-mX_9mqg4rBXYb9uPj9bJHuVao8D2JCByOpqkup9Q2_lvMOpnLT7GTvKgekSEAs6I/exec',
-    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 4, activo: 'TRUE' }
+    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 4, activo: 'TRUE' },
+  // Solo para cuentas de persona: nutriólogos y psicólogos.
+  { destino_id: 'atencion', nombre: 'Informe mensual de Atención', apartado: 'Reporte mensual',
+    clase: 'HERMANO_CON_CONTRASENA',
+    url: 'https://script.google.com/macros/s/AKfycbz0nx2wMg9Xqm0dhOsv621qXu6F_2fP9hDqMFkrIiFK8T_DAaM4Kgvr6xXxo5Hj1Q6mWA/exec',
+    aplica_a: 'ROL:NUTRICION,ROL:PSICOLOGIA', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 5, activo: 'TRUE' }
 ];
 
 function sembrarDestinosConocidos() {
