@@ -374,7 +374,13 @@ var DESTINOS_CONOCIDOS = [
     clase: 'HERMANO_CON_CONTRASENA',
     url: 'https://oscarog23.github.io/PortalPromocion/atencion/',
     url_sonda: 'https://script.google.com/macros/s/AKfycbz0nx2wMg9Xqm0dhOsv621qXu6F_2fP9hDqMFkrIiFK8T_DAaM4Kgvr6xXxo5Hj1Q6mWA/exec',
-    aplica_a: 'ROL:NUTRICION,ROL:PSICOLOGIA', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 5, activo: 'TRUE' }
+    aplica_a: 'ROL:NUTRICION,ROL:PSICOLOGIA', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 5, activo: 'TRUE' },
+  // Solo promotores: SSOP (pantalla en GitHub Pages, sonda en su /exec).
+  { destino_id: 'ssop', nombre: 'SSOP — Productividad del promotor', apartado: 'Reporte mensual',
+    clase: 'HERMANO_CON_CONTRASENA',
+    url: 'https://oscarog23.github.io/ssop-capturador/',
+    url_sonda: 'https://script.google.com/macros/s/AKfycbygXHFeDDQ2MWTwYoxN2xDd-RitXKUk6--xm3oltO4ZU-MtUVTbnkeEc9qHYgN3Y_8/exec',
+    aplica_a: 'ROL:PROMOTOR', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 6, activo: 'TRUE' }
 ];
 
 function sembrarDestinosConocidos() {
