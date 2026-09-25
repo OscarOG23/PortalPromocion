@@ -262,8 +262,8 @@ function igualarContrasenasDePersonal() {
   if (!cambiadas.length) { Logger.log('No hay cuentas de persona.'); return; }
   reemplazarFilas(HOJAS.USUARIOS, filas);
   invalidarCatalogo(HOJAS.USUARIOS);
-  registrarEvento(Session.getEffectiveUser().getEmail() || 'editor', 'IGUALAR_CONTRASENAS',
-                  cambiadas.length + ' cuentas de persona');
+  registrarEvento(Session.getEffectiveUser().getEmail() || 'editor', 'RESTABLECER_CONTRASENA',
+                  'igualar a usuario+26: ' + cambiadas.length + ' cuentas de persona');
   Logger.log('=== Cuentas de persona con contraseña usuario + 26 ===');
   cambiadas.forEach(function (c) { Logger.log(c); });
 }
