@@ -765,10 +765,10 @@ function registrarPruebas() {
     assertIgual(plan.crear.map(function (c) {
       return [c.usuario, c.nombre, c.rol, c.coordinacion_id, c.unidad_id, c.unidad, c.contrasena];
     }), [
-      ['aperezl', 'ANA PÉREZ LÓPEZ', 'NUTRICION', 'COOR20', 'U065', 'CEAPS ACUITLAPILCO', 'abcdefghjk'],
-      ['jdelapenas', 'JUAN DE LA PEÑA SOTO', 'PSICOLOGIA', 'COOR09', 'U900', 'SAN FICTICIO', 'mnpqrstuvw'],
+      ['aperezl', 'ANA PÉREZ LÓPEZ', 'NUTRICION', 'COOR20', 'U065', 'CEAPS ACUITLAPILCO', 'aperezl26'],
+      ['jdelapenas', 'JUAN DE LA PEÑA SOTO', 'PSICOLOGIA', 'COOR09', 'U900', 'SAN FICTICIO', 'jdelapenas26'],
       // misma persona con otro rol: otra cuenta, usuario con sufijo
-      ['aperezl2', 'ANA PEREZ LOPEZ', 'PSICOLOGIA', 'COOR09', 'U900', 'SAN FICTICIO', 'xyz2345678']
+      ['aperezl2', 'ANA PEREZ LOPEZ', 'PSICOLOGIA', 'COOR09', 'U900', 'SAN FICTICIO', 'aperezl226']
     ]);
   });
 

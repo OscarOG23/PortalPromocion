@@ -220,10 +220,10 @@ function invalidarCacheDeUsuarios() {
   Logger.log('caché de USUARIOS invalidada');
 }
 
-// Da una sal nueva a UNA cuenta sin tocar las demás. Para una coordinación la
-// contraseña sigue siendo usuario + '26' (sirve si la huella se corrompió).
-// Para una persona se genera otra contraseña aleatoria, que sale en el
-// registro de ejecución para entregársela.
+// Da una sal nueva a UNA cuenta sin tocar las demás. La contraseña vuelve a
+// ser usuario + '26', igual para coordinaciones y personas (decisión del
+// usuario, 2026-09-24: la cuenta solo sirve para capturar, y una contraseña
+// difícil sería pretexto para no reportar).
 function restablecerContrasena(nombreUsuario) {
   var filas = leerTabla(HOJAS.USUARIOS);
   var fila = _buscarUsuario(filas, nombreUsuario);
@@ -231,8 +231,7 @@ function restablecerContrasena(nombreUsuario) {
     throw new Error('No existe el usuario "' + nombreUsuario + '". Usuarios: ' +
                     filas.map(function (f) { return f.usuario; }).join(', '));
   }
-  var contrasena = rolDeCuenta(fila) === ROLES.COORDINACION
-    ? contrasenaDeUsuario(fila.usuario) : contrasenaAleatoria();
+  var contrasena = contrasenaDeUsuario(fila.usuario);
   fila.sal = generarSal();
   fila.huella = huellaContrasena(fila.sal, contrasena);
   reemplazarFilas(HOJAS.USUARIOS, filas);
@@ -244,10 +243,31 @@ function restablecerContrasena(nombreUsuario) {
 
 // Crea las cuentas de persona que falten a partir de la hoja PERSONAL
 // (nombre, rol, unidad, clues, activo). No toca ninguna cuenta existente ni
-// las de coordinación. La contraseña de cada cuenta NUEVA sale en el registro
-// de ejecución UNA sola vez: no se guarda en ningún lado, hay que copiarla y
-// repartirla en ese momento. Lo que no cruce con el catálogo se lista y no se
-// crea.
+// las de coordinación. La contraseña es usuario + '26', como en las
+// coordinaciones; el registro lista las cuentas creadas para repartirlas. Lo
+// que no cruce con el catálogo se lista y no se crea.
+// Pasa TODAS las cuentas de persona a la contraseña sencilla usuario + '26'.
+// Para correr una vez desde el editor (las creadas antes del 2026-09-24
+// tenían contraseña aleatoria). Lista usuario / contraseña / nombre.
+function igualarContrasenasDePersonal() {
+  var filas = leerTabla(HOJAS.USUARIOS);
+  var cambiadas = [];
+  filas.forEach(function (f) {
+    if (rolDeCuenta(f) === ROLES.COORDINACION) return;
+    var contrasena = contrasenaDeUsuario(f.usuario);
+    f.sal = generarSal();
+    f.huella = huellaContrasena(f.sal, contrasena);
+    cambiadas.push(f.usuario + ' / ' + contrasena + ' / ' + f.nombre + ' (' + rolDeCuenta(f) + ')');
+  });
+  if (!cambiadas.length) { Logger.log('No hay cuentas de persona.'); return; }
+  reemplazarFilas(HOJAS.USUARIOS, filas);
+  invalidarCatalogo(HOJAS.USUARIOS);
+  registrarEvento(Session.getEffectiveUser().getEmail() || 'editor', 'IGUALAR_CONTRASENAS',
+                  cambiadas.length + ' cuentas de persona');
+  Logger.log('=== Cuentas de persona con contraseña usuario + 26 ===');
+  cambiadas.forEach(function (c) { Logger.log(c); });
+}
+
 function crearCuentasDePersonal() {
   var hoja = SpreadsheetApp.getActive().getSheetByName(HOJAS.USUARIOS);
   if (!hoja) throw new Error('Falta la hoja USUARIOS. Ejecute setupDatabase() primero.');
@@ -283,8 +303,7 @@ function crearCuentasDePersonal() {
   }));
   invalidarCatalogo(HOJAS.USUARIOS);
 
-  Logger.log('=== Cuentas nuevas: usuario / contraseña / nombre / unidad. Cópielas AHORA: ' +
-             'no se vuelven a mostrar ===');
+  Logger.log('=== Cuentas nuevas: usuario / contraseña / nombre / unidad ===');
   plan.crear.forEach(function (c) {
     Logger.log(c.usuario + ' / ' + c.contrasena + ' / ' + c.nombre + ' / ' + c.unidad +
                ' (' + c.rol + ')');

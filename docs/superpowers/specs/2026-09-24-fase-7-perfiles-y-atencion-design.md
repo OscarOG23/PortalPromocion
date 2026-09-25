@@ -39,9 +39,11 @@ columnas), mes como «Pregunta sin título», hoja rota por reestructuras del fo
   `crearCuentasDePersonal()` desde una hoja `PERSONAL` (pegada de los padrones), que se
   cruza con el catálogo por **CLUES normalizada** (la O por 0, sin espacios) o nombre de unidad;
   lo que no cruce se reporta y no se crea.
-- **Contraseña de persona: aleatoria, no deducible** (8 caracteres sin ambiguos), mostrada
-  una vez en el registro del editor para repartirla; se restablece con
-  `restablecerContrasena`. A diferencia de las coordinaciones, aquí hay datos de salud mental.
+- **Contraseña de persona: usuario + `26`**, igual que las coordinaciones (decisión del usuario,
+  2026-09-24: la cuenta solo sirve para capturar su propio informe —no hay descarga de
+  evidencias ni vista de otros— y una contraseña difícil sería pretexto para no reportar).
+  `igualarContrasenasDePersonal()` pasa a esta regla las cuentas creadas antes con contraseña
+  aleatoria.
 - `DESTINOS.aplica_a` acepta además perfiles: `ROL:NUTRICION`, `ROL:PSICOLOGIA`,
   combinables con coma (`ROL:NUTRICION,ROL:PSICOLOGIA`). `TODAS` sigue significando
   «todas las **coordinaciones**» (las cuentas de persona no ven los destinos de coordinación).
@@ -102,8 +104,8 @@ que se comparta), tablero, captura por paciente.
 
 ## 5. Riesgos
 
-- Cuentas de persona con contraseña aleatoria: hay que repartirlas; se aceptan olvidos
-  (restablecer desde el editor).
+- Contraseña deducible (usuario + 26): quien conozca el usuario de otra persona puede capturar a
+  su nombre. Riesgo aceptado por el usuario, igual que en las coordinaciones.
 - El cruce padrón ↔ catálogo tiene errores de CLUES (una O en lugar de un 0, CLUES nuevas `MCIMB…` contra las del catálogo `MCSSA…`); se normaliza y lo que
   no cruce se corrige a mano en `PERSONAL`.
 - Servir la pantalla desde `script.google.com` falla en algunos Android con varias cuentas

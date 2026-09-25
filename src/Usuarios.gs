@@ -210,7 +210,7 @@ function planDeCuentasDePersonal(filasPersonal, usuariosExistentes, unidades, az
     yaTiene[clave] = 'plan';
     crear.push({ usuario: usuario, nombre: nombre, rol: rol, coordinacion_id: unidad.coordinacion_id,
                  unidad_id: unidad.unidad_id, unidad: unidad.nombre_unidad,
-                 contrasena: contrasenaAleatoria(azar) });
+                 contrasena: contrasenaDeUsuario(usuario) });
   });
   return { crear: crear, problemas: problemas };
 }
