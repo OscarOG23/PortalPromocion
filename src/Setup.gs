@@ -386,7 +386,14 @@ var DESTINOS_CONOCIDOS = [
     clase: 'HERMANO_CON_CONTRASENA',
     url: 'https://oscarog23.github.io/PortalPromocion/jornadas/',
     url_sonda: 'https://script.google.com/macros/s/AKfycbx5DZwA7PCK_xdZT-Aei83rezQKQTpv57AdRcNQ-cgAjnxgBTgofo6WWJj0YV3Bm8sk/exec',
-    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 7, activo: 'TRUE' }
+    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 7, activo: 'TRUE' },
+  // Alta abierta de jornada médica: mismo backend de JS19, pantalla propia en
+  // Pages (no lleva boleto ni coordinación). No es «reportado/pendiente»,
+  // es una pantalla de registro: sin sonda.
+  { destino_id: 'jornada_medica', nombre: 'Alta de Jornada Médica', apartado: 'Jornadas',
+    clase: 'HERMANO_CON_CONTRASENA',
+    url: 'https://oscarog23.github.io/PortalPromocion/jornada-medica/',
+    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NINGUNA', orden: 8, activo: 'TRUE' }
 ];
 
 function sembrarDestinosConocidos() {

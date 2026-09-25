@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!-- ARCHIVO GENERADO por JS19-JORNADAS/scripts/publicar_pages_medica.py — NO EDITAR A MANO. -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>Alta de Jornada Médica · JS XIX</title>
+<link rel="stylesheet" href="estilos.css?v=20260925a45e72">
+</head>
+<body>
+
+
+<header>
+  <h1>Alta de Jornada Médica</h1>
+  <p>Jurisdicción Sanitaria No. XIX Texcoco · PROMSAM</p>
+  <p class="sub">Para jornadas gestionadas por coordinadores o recursos, cualquier día del mes.</p>
+</header>
+
+<div class="wrap">
+
+  <div id="aviso" class="aviso a-warn oculto" role="status" aria-live="polite"></div>
+  <div id="confirmacion" class="card oculto">
+    <h2>Jornada registrada</h2>
+    <p>Folio: <strong id="folioResultado"></strong></p>
+    <p class="mini" id="mensajeResultado"></p>
+    <button class="b-sec" id="btnOtra">Dar de alta otra</button>
+  </div>
+
+  <form class="card" id="form">
+    <label for="unidad">Unidad médica de adscripción</label>
+    <select id="unidad" required><option value="">Selecciona la unidad…</option></select>
+
+    <p class="mini">Municipio: <span id="municipioUnidad">—</span> ·
+       Coordinación: <span id="coordinacionUnidad">—</span></p>
+
+    <label for="fecha">Fecha de la jornada</label>
+    <input id="fecha" type="date" required>
+
+    <label for="localidad">Localidad</label>
+    <input id="localidad" type="text" required>
+
+    <label for="lugar">Lugar (dónde se realizará)</label>
+    <input id="lugar" type="text" required>
+
+    <label for="poblacionProyectada">Población proyectada</label>
+    <input id="poblacionProyectada" type="number" min="1" required>
+
+    <label>Módulos convocados</label>
+    <div id="modulos"></div>
+
+    <label for="solicitante">¿Quién solicita?</label>
+    <input id="solicitante" type="text" autocomplete="name" required>
+
+    <button class="b-prim" id="btnEnviar" type="submit" disabled>Registrar jornada</button>
+  </form>
+
+</div>
+
+<script src="config.js?v=20260925a45e72"></script>
+<script src="app.js?v=20260925a45e72"></script>
+</body>
+</html>
