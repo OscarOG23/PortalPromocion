@@ -380,7 +380,13 @@ var DESTINOS_CONOCIDOS = [
     clase: 'HERMANO_CON_CONTRASENA',
     url: 'https://oscarog23.github.io/ssop-capturador/',
     url_sonda: 'https://script.google.com/macros/s/AKfycbygXHFeDDQ2MWTwYoxN2xDd-RitXKUk6--xm3oltO4ZU-MtUVTbnkeEc9qHYgN3Y_8/exec',
-    aplica_a: 'ROL:PROMOTOR', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 6, activo: 'TRUE' }
+    aplica_a: 'ROL:PROMOTOR', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 6, activo: 'TRUE' },
+  // Jornadas extramuros de las coordinaciones: JS19 (pantalla en Pages, sonda en su /exec).
+  { destino_id: 'jornadas', nombre: 'Jornadas extramuros', apartado: 'Jornadas',
+    clase: 'HERMANO_CON_CONTRASENA',
+    url: 'https://oscarog23.github.io/PortalPromocion/jornadas/',
+    url_sonda: 'https://script.google.com/macros/s/AKfycbx5DZwA7PCK_xdZT-Aei83rezQKQTpv57AdRcNQ-cgAjnxgBTgofo6WWJj0YV3Bm8sk/exec',
+    aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 7, activo: 'TRUE' }
 ];
 
 function sembrarDestinosConocidos() {

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<!-- ARCHIVO GENERADO por JS19-JORNADAS/scripts/publicar_pages.py — NO EDITAR A MANO. -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- La dirección llega con el boleto: que no se filtre en el Referer. -->
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>Captura de Jornadas · JS XIX</title>
+<link rel="stylesheet" href="estilos.css?v=20260925ff410e">
+</head>
+<body>
+
+
+<header>
+  <h1>Captura de Jornadas</h1>
+  <p>Jurisdicción Sanitaria No. XIX Texcoco · PROMSAM</p>
+  <p class="sub">Al cierre de la jornada, cada módulo reporta su productividad y su evidencia.</p>
+  <p class="insignia" id="insigniaRed" aria-live="polite"></p>
+</header>
+
+<div class="contexto oculto" id="contexto">
+  <span class="ctx-txt" id="ctxTxt"></span>
+  <span id="ctxTotal"></span>
+</div>
+
+<div class="progreso">
+  <div class="pasos" id="pasos"></div>
+  <div class="rotulo" id="rotuloPaso">Paso 1 de 4 · Jornada y módulo</div>
+</div>
+
+<div class="wrap">
+
+  <div id="avisoRed" class="aviso a-warn oculto" role="status" aria-live="polite">
+    Sin conexión. Lo que captures se guarda en el teléfono y se envía solo al recuperar señal.
+  </div>
+  <div id="avisoCola" class="aviso a-info oculto" role="status" aria-live="polite"></div>
+
+  <!-- ====================== PASO 1 ====================== -->
+  <section class="card" id="p1">
+    <h2>Jornada y módulo</h2>
+
+    <div id="selectorModo" class="fila-btn" style="margin-bottom:16px">
+      <button class="b-sec" id="btnModoJornada">Toda la jornada</button>
+      <button class="b-sec" id="btnModoModulo">Solo mi módulo</button>
+    </div>
+
+    <label for="jornada">Jornada</label>
+    <select id="jornada"><option value="">Cargando jornadas…</option></select>
+
+    <div id="datosJornada" class="oculto">
+      <p class="mini" id="detalleJornada"></p>
+      <a id="ligaMapa" class="mapa" href="#" target="_blank" rel="noopener">Cómo llegar (Maps)</a>
+    </div>
+
+    <div id="cajaModulo">
+      <label for="modulo">Módulo</label>
+      <select id="modulo"><option value="">Selecciona el módulo…</option></select>
+    </div>
+
+    <label for="capturista">¿Quién reporta?</label>
+    <input id="capturista" type="text" autocomplete="name"
+           placeholder="Nombre de quien entrega los números">
+    <p class="mini">Si te lo pasaron por WhatsApp, escribe el nombre de quien te lo mandó.</p>
+  </section>
+
+  <!-- ====================== PASO 2 ====================== -->
+  <section class="card oculto" id="p2">
+    <h2>Productividad</h2>
+    <p class="mini" id="pistaInd">Deja vacío lo que no se ofreció. No pongas cero de relleno.</p>
+    <div id="taller" class="oculto"></div>
+    <div id="indicadores"></div>
+    <div id="extras" class="oculto"></div>
+    <div class="total" id="cajaTotal">
+      <span id="rotuloTotal">Total del módulo</span><span id="totalMod">0</span>
+    </div>
+    <div id="fichaTecnica" class="oculto"></div>
+  </section>
+
+  <!-- ====================== PASO 3 ====================== -->
+  <section class="card oculto" id="p3">
+    <h2>Evidencia fotográfica</h2>
+    <p class="mini">Mínimo 3 fotos: montaje, actividad en curso y panorámica.</p>
+    <div id="cajaEtiqueta" class="oculto">
+      <label for="etiquetaFoto">Las siguientes fotos son de</label>
+      <select id="etiquetaFoto"></select>
+    </div>
+    <div class="fotos" id="galeria">
+      <label class="add" for="archivoFoto">+</label>
+    </div>
+    <input id="archivoFoto" type="file" accept="image/*" capture="environment"
+           multiple class="oculto">
+    <label for="notas">Observaciones</label>
+    <textarea id="notas" rows="2" placeholder="Incidencias, faltantes, apoyo municipal…"></textarea>
+  </section>
+
+  <!-- ====================== PASO 4 ====================== -->
+  <section class="card oculto" id="p4">
+    <h2>Revisar y enviar</h2>
+    <div id="avisoFotos" class="aviso a-warn oculto"></div>
+    <div id="repaso"></div>
+    <div class="recon oculto" id="recon"></div>
+    <div class="recon oculto" id="reconFicha"></div>
+  </section>
+
+</div>
+
+<div class="barra">
+  <div class="in">
+    <div class="fila-btn">
+      <button class="b-sec oculto" id="btnAtras">← Atrás</button>
+      <button class="b-prim" id="btnSiguiente">Continuar →</button>
+    </div>
+    <p class="mini" style="text-align:center;margin:8px 0 0" id="estado" role="alert" aria-live="assertive"></p>
+  </div>
+</div>
+
+<script src="config.js?v=20260925ff410e"></script>
+<script src="app.js?v=20260925ff410e"></script>
+</body>
+</html>
