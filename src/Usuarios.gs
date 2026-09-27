@@ -263,3 +263,50 @@ function planDeContrasenasPorFecha(filasFechas, usuarios) {
   });
   return { cambiar: cambiar, problemas: problemas };
 }
+
+// --- Alias de persona: 4 letras + año de la CURP ------------------------------
+// Decisión del usuario (2026-09-27): la persona entra con un alias que sale de
+// su CURP (GAGO990620… da 'gago99'), además de su usuario de siempre. En la
+// plantilla completa las 4 letras solas se repetían 54 veces; con el año, 2.
+// Si aun así choca, la segunda lleva 'b', la tercera 'c'… (un número se
+// confundiría con el año). Deja ver el año de la contraseña: aceptado, porque
+// el bloqueo por intentos impide probar los 365 días.
+
+var _CURP = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/;
+
+function aliasDeCurp(curp) {
+  var c = String(curp || '').trim().toUpperCase();
+  return _CURP.test(c) ? c.slice(0, 6).toLowerCase() : '';
+}
+
+// Cruza cada fila (nombre, rol, curp) con su cuenta de persona por nombre +
+// rol. Una cuenta que ya tiene alias lo conserva: un alias repartido no cambia.
+function planDeAlias(filasCurp, usuarios) {
+  var porClave = {}, tomados = {};
+  (usuarios || []).forEach(function (u) {
+    tomados[String(u.usuario || '').trim().toLowerCase()] = true;
+    var alias = String(u.alias || '').trim().toLowerCase();
+    if (alias) tomados[alias] = true;
+    if (rolDeCuenta(u) !== ROLES.COORDINACION) porClave[_claveDePersona(u.nombre) + '|' + rolDeCuenta(u)] = u;
+  });
+  var asignar = [], problemas = [];
+  (filasCurp || []).forEach(function (f, i) {
+    var nombre = sinTitulo(f.nombre);
+    var rol = String(f.rol || '').trim().toUpperCase();
+    function problema(motivo) { problemas.push({ fila: i + 2, nombre: nombre, motivo: motivo }); }
+    var cuenta = porClave[_claveDePersona(nombre) + '|' + rol];
+    if (!cuenta) return problema('no tiene cuenta de persona con ese nombre y rol');
+    var previo = String(cuenta.alias || '').trim().toLowerCase();
+    if (previo) return asignar.push({ usuario: cuenta.usuario, nombre: cuenta.nombre, alias: previo });
+    var base = aliasDeCurp(f.curp);
+    if (!base) return problema('CURP inválida: "' + (f.curp || '') + '"');
+    var alias = base, letra = 'b';
+    while (tomados[alias]) {
+      alias = base + letra;
+      letra = String.fromCharCode(letra.charCodeAt(0) + 1);
+    }
+    tomados[alias] = true;
+    asignar.push({ usuario: cuenta.usuario, nombre: cuenta.nombre, alias: alias });
+  });
+  return { asignar: asignar, problemas: problemas };
+}

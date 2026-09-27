@@ -11,9 +11,9 @@ function _esquema() {
                       'responsable', 'activo']],
     // unidad_id va AL FINAL: agregarla después no mueve ninguna columna.
     [HOJAS.USUARIOS, ['usuario', 'nombre', 'rol', 'coordinacion_id', 'sal', 'huella', 'activo',
-                      'unidad_id']],
+                      'unidad_id', 'alias']],
     [HOJAS.PERSONAL, ['nombre', 'rol', 'unidad', 'clues', 'activo']],
-    [HOJAS.FECHAS_NACIMIENTO, ['nombre', 'rol', 'fecha']],
+    [HOJAS.FECHAS_NACIMIENTO, ['nombre', 'rol', 'fecha', 'curp']],
     // url_sonda va AL FINAL, por lo mismo que unidad_id.
     [HOJAS.DESTINOS, ['destino_id', 'nombre', 'apartado', 'clase', 'url', 'aplica_a',
                       'param_identidad', 'valor_identidad', 'sonda', 'orden', 'activo', 'url_sonda']],
@@ -297,7 +297,7 @@ function _leerFechasDeNacimiento() {
 }
 
 // Para `clasp run`: reemplaza la hoja FECHAS_NACIMIENTO con `filas`
-// ([{nombre, rol, fecha}]) sin que los datos pasen por el repo público. La
+// ([{nombre, rol, fecha, curp}]) sin que los datos pasen por el repo público. La
 // columna fecha queda como texto para conservar el 0 inicial.
 function cargarFechasDeNacimiento(filas) {
   if (!filas || !filas.length) throw new Error('No llegaron filas.');
@@ -305,9 +305,47 @@ function cargarFechasDeNacimiento(filas) {
   if (!hoja) throw new Error('Falta la hoja ' + HOJAS.FECHAS_NACIMIENTO + '. Ejecute setupDatabase().');
   hoja.getRange(2, 3, Math.max(hoja.getMaxRows() - 1, filas.length), 1).setNumberFormat('@');
   reemplazarFilas(HOJAS.FECHAS_NACIMIENTO, filas.map(function (f) {
-    return { nombre: f.nombre, rol: f.rol, fecha: String(f.fecha) };
+    return { nombre: f.nombre, rol: f.rol, fecha: String(f.fecha), curp: f.curp || '' };
   }));
   return filas.length + ' filas cargadas';
+}
+
+// Agrega `columna` al final de la hoja si no la tiene. Idempotente.
+function _agregarColumnaAlFinal(nombreHoja, columna) {
+  var hoja = SpreadsheetApp.getActive().getSheetByName(nombreHoja);
+  if (!hoja) throw new Error('Falta la hoja ' + nombreHoja + '. Ejecute setupDatabase() primero.');
+  var ultima = hoja.getLastColumn();
+  if (hoja.getRange(1, 1, 1, ultima).getValues()[0].indexOf(columna) !== -1) {
+    return nombreHoja + ' ya tenía ' + columna;
+  }
+  hoja.getRange(1, ultima + 1).setValue(columna).setFontWeight('bold');
+  invalidarCatalogo(nombreHoja);
+  return nombreHoja + ' — columna ' + columna + ' agregada';
+}
+
+// Para las hojas creadas antes del alias (2026-09-27).
+function agregarColumnasDeAlias() {
+  return [_agregarColumnaAlFinal(HOJAS.USUARIOS, 'alias'),
+          _agregarColumnaAlFinal(HOJAS.FECHAS_NACIMIENTO, 'curp')];
+}
+
+// Da a cada persona de FECHAS_NACIMIENTO su alias de CURP (gago99) en la
+// columna alias de USUARIOS. Quien ya tenía alias lo conserva. Su usuario de
+// siempre sigue sirviendo. Devuelve la lista para repartir.
+function asignarAliasDePersonal() {
+  var filas = leerTabla(HOJAS.USUARIOS);
+  if (filas.length && !('alias' in filas[0])) throw new Error('Ejecute agregarColumnasDeAlias() primero.');
+  var plan = planDeAlias(_leerFechasDeNacimiento(), filas);
+  var porUsuario = {};
+  plan.asignar.forEach(function (a) { porUsuario[a.usuario] = a.alias; });
+  filas.forEach(function (f) {
+    if (Object.prototype.hasOwnProperty.call(porUsuario, f.usuario)) f.alias = porUsuario[f.usuario];
+  });
+  reemplazarFilas(HOJAS.USUARIOS, filas);
+  invalidarCatalogo(HOJAS.USUARIOS);
+  plan.problemas.forEach(function (p) { Logger.log('SIN ALIAS  fila ' + p.fila + '  ' + p.nombre + ': ' + p.motivo); });
+  return { asignados: plan.asignar.map(function (a) { return a.alias + ' / ' + a.usuario + ' / ' + a.nombre; }),
+           problemas: plan.problemas.map(function (p) { return p.nombre + ': ' + p.motivo; }) };
 }
 
 // Pone a cada persona de la hoja FECHAS_NACIMIENTO (nombre, rol, fecha

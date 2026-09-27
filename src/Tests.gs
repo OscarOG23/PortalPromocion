@@ -824,6 +824,43 @@ function registrarPruebas() {
     assertIgual(plan.problemas.map(function (p) { return p.fila; }), [2, 3, 4, 5]);
   });
 
+  prueba('alias: 4 letras + año de la CURP; choque con letra; conserva el que ya tenía', function () {
+    var usuarios = [
+      { usuario: 'chiautla', nombre: 'CHIAUTLA', rol: 'COORDINACION' },
+      { usuario: 'jlopezm', nombre: 'JUAN LOPEZ MORA', rol: 'PROMOTOR', alias: '' },
+      { usuario: 'jlopezm2', nombre: 'JOSE LOPEZ MATA', rol: 'PROMOTOR', alias: '' },
+      { usuario: 'aperezl', nombre: 'ANA PÉREZ LÓPEZ', rol: 'NUTRICION', alias: 'pela80' }
+    ];
+    var curps = [
+      { nombre: 'JUAN LOPEZ MORA', rol: 'PROMOTOR', curp: 'lomj730101hmcpra01' },
+      { nombre: 'JOSE LOPEZ MATA', rol: 'PROMOTOR', curp: 'LOMJ730505HMCPTS02' },
+      { nombre: 'L.N. ANA PEREZ LOPEZ', rol: 'NUTRICION', curp: 'PELA801201MDFRPN03' }
+    ];
+    var plan = planDeAlias(curps, usuarios);
+    assertIgual(plan.problemas, []);
+    assertIgual(plan.asignar.map(function (a) { return [a.usuario, a.alias]; }), [
+      ['jlopezm', 'lomj73'], ['jlopezm2', 'lomj73b'], ['aperezl', 'pela80']
+    ]);
+  });
+
+  prueba('alias: CURP inválida y persona sin cuenta se reportan', function () {
+    var usuarios = [{ usuario: 'aperezl', nombre: 'ANA PÉREZ LÓPEZ', rol: 'NUTRICION' }];
+    var plan = planDeAlias([
+      { nombre: 'ANA PÉREZ LÓPEZ', rol: 'NUTRICION', curp: 'PELA80' },
+      { nombre: 'NADIE NUNCA', rol: 'NUTRICION', curp: 'PELA801201MDFRPN03' }
+    ], usuarios);
+    assertIgual(plan.asignar, []);
+    assertIgual(plan.problemas.map(function (p) { return p.fila; }), [2, 3]);
+  });
+
+  prueba('login por alias: encuentra la cuenta y el contador es el del usuario', function () {
+    var filas = [{ usuario: 'aperezl', alias: 'pela80' }, { usuario: 'chiautla' }];
+    assertIgual(_buscarUsuario(filas, ' PELA80 ').usuario, 'aperezl');
+    assertIgual(_buscarUsuario(filas, 'aperezl').usuario, 'aperezl');
+    assertIgual(_buscarUsuario(filas, ''), null);
+    assertIgual(_claveIntentos(_buscarUsuario(filas, 'PELA80').usuario), _claveIntentos('aperezl'));
+  });
+
   // --- La máscara con cuentas de persona (fase 7) --------------------------
 
   var CUENTA_COORD = { usuario: 'chiautla', nombre: 'CHIAUTLA', coordinacion_id: 'COOR01',

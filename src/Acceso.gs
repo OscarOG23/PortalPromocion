@@ -6,11 +6,17 @@ function _debeBloquear(intentos) {
   return intentos >= MAX_INTENTOS;
 }
 
-// Los celulares ponen mayúscula inicial y a veces un espacio al final.
+// Los celulares ponen mayúscula inicial y a veces un espacio al final. Una
+// persona también entra con su alias de CURP (gago99); el usuario manda si
+// ambos coinciden, y lo que se devuelve es siempre la fila con su usuario.
 function _buscarUsuario(filas, nombreUsuario) {
   var buscado = String(nombreUsuario || '').trim().toLowerCase();
+  if (!buscado) return null;
   for (var i = 0; i < filas.length; i++) {
     if (String(filas[i].usuario).trim().toLowerCase() === buscado) return filas[i];
+  }
+  for (var j = 0; j < filas.length; j++) {
+    if (String(filas[j].alias || '').trim().toLowerCase() === buscado) return filas[j];
   }
   return null;
 }
@@ -59,7 +65,10 @@ function iniciarSesion(nombreUsuario, contrasena) {
   // real pasa de 30.
   if (String(nombreUsuario || '').length > MAX_LARGO_USUARIO) return _resultadoAcceso(null, '');
   var cache = CacheService.getScriptCache();
-  var claveIntentos = _claveIntentos(nombreUsuario);
+  var fila = _buscarUsuario(leerCatalogo(HOJAS.USUARIOS), nombreUsuario);
+  // Los intentos se cuentan por cuenta, no por lo tecleado: alternar alias y
+  // usuario no debe duplicar los intentos permitidos.
+  var claveIntentos = _claveIntentos(fila ? fila.usuario : nombreUsuario);
   var intentos = parseInt(cache.get(claveIntentos) || '0', 10);
 
   if (_debeBloquear(intentos)) {
@@ -67,7 +76,7 @@ function iniciarSesion(nombreUsuario, contrasena) {
              message: 'Demasiados intentos. Espere ' + MINUTOS_BLOQUEO + ' minutos.' };
   }
 
-  var r = _resultadoAcceso(_buscarUsuario(leerCatalogo(HOJAS.USUARIOS), nombreUsuario), contrasena);
+  var r = _resultadoAcceso(fila, contrasena);
   if (!r.ok) {
     cache.put(claveIntentos, String(intentos + 1), MINUTOS_BLOQUEO * 60);
     return r;
