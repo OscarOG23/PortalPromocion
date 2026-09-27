@@ -789,6 +789,41 @@ function registrarPruebas() {
     assertIgual(plan.problemas[5].motivo, 'nombre sin letras');
   });
 
+  prueba('contraseña por fecha: cruza por nombre y rol, normaliza la fecha', function () {
+    var usuarios = [
+      { usuario: 'chiautla', nombre: 'CHIAUTLA', rol: 'COORDINACION' },
+      { usuario: 'aperezl', nombre: 'ANA PÉREZ LÓPEZ', rol: 'NUTRICION' },
+      { usuario: 'aperezl2', nombre: 'ANA PEREZ LOPEZ', rol: 'PSICOLOGIA' },
+      { usuario: 'lgilr', nombre: 'LUIS GIL RUIZ', rol: 'PROMOTOR' }
+    ];
+    var fechas = [
+      { nombre: 'L.N. ANA PEREZ LOPEZ', rol: 'nutricion', fecha: '01121980' },
+      { nombre: 'PSIC. ANA PÉREZ LÓPEZ', rol: 'PSICOLOGIA', fecha: 5031975 },     // Sheets comió el 0
+      { nombre: 'LUIS GIL RUIZ', rol: 'PROMOTOR', fecha: new Date(1990, 1, 9) }  // celda con formato fecha
+    ];
+    var plan = planDeContrasenasPorFecha(fechas, usuarios);
+    assertIgual(plan.problemas, []);
+    assertIgual(plan.cambiar.map(function (c) { return [c.usuario, c.contrasena]; }), [
+      ['aperezl', '01121980'], ['aperezl2', '05031975'], ['lgilr', '09021990']
+    ]);
+  });
+
+  prueba('contraseña por fecha: coordinación, sin cuenta y fecha imposible se reportan', function () {
+    var usuarios = [
+      { usuario: 'chiautla', nombre: 'CHIAUTLA', rol: 'COORDINACION' },
+      { usuario: 'aperezl', nombre: 'ANA PÉREZ LÓPEZ', rol: 'NUTRICION' }
+    ];
+    var fechas = [
+      { nombre: 'CHIAUTLA', rol: 'COORDINACION', fecha: '01011980' },
+      { nombre: 'NADIE NUNCA', rol: 'NUTRICION', fecha: '01011980' },
+      { nombre: 'ANA PÉREZ LÓPEZ', rol: 'NUTRICION', fecha: '31021980' },
+      { nombre: 'ANA PÉREZ LÓPEZ', rol: 'NUTRICION', fecha: '' }
+    ];
+    var plan = planDeContrasenasPorFecha(fechas, usuarios);
+    assertIgual(plan.cambiar, []);
+    assertIgual(plan.problemas.map(function (p) { return p.fila; }), [2, 3, 4, 5]);
+  });
+
   // --- La máscara con cuentas de persona (fase 7) --------------------------
 
   var CUENTA_COORD = { usuario: 'chiautla', nombre: 'CHIAUTLA', coordinacion_id: 'COOR01',

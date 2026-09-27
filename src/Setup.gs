@@ -13,6 +13,7 @@ function _esquema() {
     [HOJAS.USUARIOS, ['usuario', 'nombre', 'rol', 'coordinacion_id', 'sal', 'huella', 'activo',
                       'unidad_id']],
     [HOJAS.PERSONAL, ['nombre', 'rol', 'unidad', 'clues', 'activo']],
+    [HOJAS.FECHAS_NACIMIENTO, ['nombre', 'rol', 'fecha']],
     // url_sonda va AL FINAL, por lo mismo que unidad_id.
     [HOJAS.DESTINOS, ['destino_id', 'nombre', 'apartado', 'clase', 'url', 'aplica_a',
                       'param_identidad', 'valor_identidad', 'sonda', 'orden', 'activo', 'url_sonda']],
@@ -220,10 +221,10 @@ function invalidarCacheDeUsuarios() {
   Logger.log('caché de USUARIOS invalidada');
 }
 
-// Da una sal nueva a UNA cuenta sin tocar las demás. La contraseña vuelve a
-// ser usuario + '26', igual para coordinaciones y personas (decisión del
-// usuario, 2026-09-24: la cuenta solo sirve para capturar, y una contraseña
-// difícil sería pretexto para no reportar).
+// Da una sal nueva a UNA cuenta sin tocar las demás. Una coordinación vuelve
+// a usuario + '26'; una persona, a su fecha de nacimiento ddmmaaaa de la hoja
+// FECHAS_NACIMIENTO (decisión del usuario, 2026-09-26: una contraseña que no
+// se pueda olvidar quita el pretexto para no reportar).
 function restablecerContrasena(nombreUsuario) {
   var filas = leerTabla(HOJAS.USUARIOS);
   var fila = _buscarUsuario(filas, nombreUsuario);
@@ -232,6 +233,15 @@ function restablecerContrasena(nombreUsuario) {
                     filas.map(function (f) { return f.usuario; }).join(', '));
   }
   var contrasena = contrasenaDeUsuario(fila.usuario);
+  if (rolDeCuenta(fila) !== ROLES.COORDINACION) {
+    // Una persona vuelve a su fecha de nacimiento, no a usuario + '26'.
+    var plan = planDeContrasenasPorFecha(_leerFechasDeNacimiento(), [fila]);
+    if (!plan.cambiar.length) {
+      throw new Error(fila.nombre + ' no tiene fecha válida en la hoja ' +
+                      HOJAS.FECHAS_NACIMIENTO + '. Agréguela y vuelva a correr.');
+    }
+    contrasena = plan.cambiar[0].contrasena;
+  }
   fila.sal = generarSal();
   fila.huella = huellaContrasena(fila.sal, contrasena);
   reemplazarFilas(HOJAS.USUARIOS, filas);
@@ -246,26 +256,110 @@ function restablecerContrasena(nombreUsuario) {
 // las de coordinación. La contraseña es usuario + '26', como en las
 // coordinaciones; el registro lista las cuentas creadas para repartirlas. Lo
 // que no cruce con el catálogo se lista y no se crea.
-// Pasa TODAS las cuentas de persona a la contraseña sencilla usuario + '26'.
-// Para correr una vez desde el editor (las creadas antes del 2026-09-24
-// tenían contraseña aleatoria). Lista usuario / contraseña / nombre.
-function igualarContrasenasDePersonal() {
+// Da de baja una cuenta (activo = FALSE en USUARIOS) y, si es de persona,
+// también su fila en PERSONAL, para que crearCuentasDePersonal() no la
+// vuelva a crear. Surte efecto al instante (invalida la caché).
+function darDeBajaCuenta(nombreUsuario) {
   var filas = leerTabla(HOJAS.USUARIOS);
-  var cambiadas = [];
-  filas.forEach(function (f) {
-    if (rolDeCuenta(f) === ROLES.COORDINACION) return;
-    var contrasena = contrasenaDeUsuario(f.usuario);
-    f.sal = generarSal();
-    f.huella = huellaContrasena(f.sal, contrasena);
-    cambiadas.push(f.usuario + ' / ' + contrasena + ' / ' + f.nombre + ' (' + rolDeCuenta(f) + ')');
+  var fila = _buscarUsuario(filas, nombreUsuario);
+  if (!fila) throw new Error('No existe el usuario "' + nombreUsuario + '".');
+  fila.activo = 'FALSE';
+  reemplazarFilas(HOJAS.USUARIOS, filas);
+  invalidarCatalogo(HOJAS.USUARIOS);
+  var enPersonal = 0;
+  if (rolDeCuenta(fila) !== ROLES.COORDINACION) {
+    var clave = _claveDePersona(fila.nombre) + '|' + rolDeCuenta(fila);
+    var personal = leerTabla(HOJAS.PERSONAL);
+    personal.forEach(function (f) {
+      if (_claveDePersona(sinTitulo(f.nombre)) + '|' + String(f.rol || '').trim().toUpperCase() === clave) {
+        f.activo = 'FALSE'; enPersonal++;
+      }
+    });
+    if (enPersonal) reemplazarFilas(HOJAS.PERSONAL, personal);
+  }
+  registrarEvento(Session.getEffectiveUser().getEmail() || 'editor', 'BAJA_CUENTA', fila.usuario);
+  return fila.usuario + ' dado de baja (' + enPersonal + ' filas en PERSONAL)';
+}
+
+// Pasaba las personas a usuario + '26'. Quedó bloqueada para no deshacer
+// por error las contraseñas por fecha de nacimiento.
+function igualarContrasenasDePersonal() {
+  throw new Error('Obsoleta desde 2026-09-26: las personas usan su fecha de nacimiento. ' +
+                  'Use asignarContrasenasPorFechaNacimiento().');
+}
+
+function _leerFechasDeNacimiento() {
+  if (!SpreadsheetApp.getActive().getSheetByName(HOJAS.FECHAS_NACIMIENTO)) {
+    throw new Error('Falta la hoja ' + HOJAS.FECHAS_NACIMIENTO +
+                    '. Ejecute setupDatabase() y pegue nombre / rol / fecha (ddmmaaaa).');
+  }
+  return leerTabla(HOJAS.FECHAS_NACIMIENTO);
+}
+
+// Para `clasp run`: reemplaza la hoja FECHAS_NACIMIENTO con `filas`
+// ([{nombre, rol, fecha}]) sin que los datos pasen por el repo público. La
+// columna fecha queda como texto para conservar el 0 inicial.
+function cargarFechasDeNacimiento(filas) {
+  if (!filas || !filas.length) throw new Error('No llegaron filas.');
+  var hoja = SpreadsheetApp.getActive().getSheetByName(HOJAS.FECHAS_NACIMIENTO);
+  if (!hoja) throw new Error('Falta la hoja ' + HOJAS.FECHAS_NACIMIENTO + '. Ejecute setupDatabase().');
+  hoja.getRange(2, 3, Math.max(hoja.getMaxRows() - 1, filas.length), 1).setNumberFormat('@');
+  reemplazarFilas(HOJAS.FECHAS_NACIMIENTO, filas.map(function (f) {
+    return { nombre: f.nombre, rol: f.rol, fecha: String(f.fecha) };
+  }));
+  return filas.length + ' filas cargadas';
+}
+
+// Pone a cada persona de la hoja FECHAS_NACIMIENTO (nombre, rol, fecha
+// ddmmaaaa) su fecha como contraseña. No toca coordinaciones ni a quien no
+// esté en la hoja. Se puede correr las veces que haga falta. Formatee la
+// columna fecha como TEXTO antes de pegar, o Sheets quita el 0 inicial (se
+// tolera, pero así se ve igual que lo que se reparte).
+function asignarContrasenasPorFechaNacimiento() {
+  var filas = leerTabla(HOJAS.USUARIOS);
+  var plan = planDeContrasenasPorFecha(_leerFechasDeNacimiento(), filas);
+  plan.problemas.forEach(function (p) {
+    Logger.log('NO SE CAMBIÓ  fila ' + p.fila + '  ' + p.nombre + ': ' + p.motivo);
   });
-  if (!cambiadas.length) { Logger.log('No hay cuentas de persona.'); return; }
+  var resumen = { cambiadas: plan.cambiar.map(function (c) { return c.usuario + ' / ' + c.nombre; }),
+                  problemas: plan.problemas.map(function (p) { return p.nombre + ': ' + p.motivo; }) };
+  if (!plan.cambiar.length) { Logger.log('=== Nada que cambiar ==='); return resumen; }
+  var porUsuario = {};
+  plan.cambiar.forEach(function (c) { porUsuario[c.usuario] = c.contrasena; });
+  filas.forEach(function (f) {
+    if (!Object.prototype.hasOwnProperty.call(porUsuario, f.usuario)) return;
+    f.sal = generarSal();
+    f.huella = huellaContrasena(f.sal, porUsuario[f.usuario]);
+  });
   reemplazarFilas(HOJAS.USUARIOS, filas);
   invalidarCatalogo(HOJAS.USUARIOS);
   registrarEvento(Session.getEffectiveUser().getEmail() || 'editor', 'RESTABLECER_CONTRASENA',
-                  'igualar a usuario+26: ' + cambiadas.length + ' cuentas de persona');
-  Logger.log('=== Cuentas de persona con contraseña usuario + 26 ===');
-  cambiadas.forEach(function (c) { Logger.log(c); });
+                  'fecha de nacimiento: ' + plan.cambiar.length + ' cuentas de persona');
+  Logger.log('=== Usuario / contraseña / nombre (rol) ===');
+  plan.cambiar.forEach(function (c) {
+    Logger.log(c.usuario + ' / ' + c.contrasena + ' / ' + c.nombre + ' (' + c.rol + ')');
+  });
+  Logger.log('=== ' + plan.cambiar.length + ' cambiadas, ' + plan.problemas.length + ' con problema ===');
+  return resumen;
+}
+
+// Para `clasp run`: agrega a PERSONAL las filas ([{nombre, rol, unidad,
+// clues, activo}]) cuya persona+rol no esté ya. Luego: crearCuentasDePersonal().
+function agregarAPersonal(filas) {
+  var ya = {};
+  leerTabla(HOJAS.PERSONAL).forEach(function (f) {
+    ya[_claveDePersona(f.nombre) + '|' + String(f.rol || '').trim().toUpperCase()] = true;
+  });
+  var nuevas = (filas || []).filter(function (f) {
+    var k = _claveDePersona(f.nombre) + '|' + String(f.rol || '').trim().toUpperCase();
+    if (ya[k]) return false;
+    ya[k] = true;
+    return true;
+  }).map(function (f) {
+    return { nombre: f.nombre, rol: f.rol, unidad: f.unidad, clues: f.clues || '', activo: f.activo || 'TRUE' };
+  });
+  escribirFilas(HOJAS.PERSONAL, nuevas);
+  return nuevas.length + ' filas agregadas a PERSONAL';
 }
 
 function crearCuentasDePersonal() {
@@ -290,9 +384,11 @@ function crearCuentasDePersonal() {
   plan.problemas.forEach(function (p) {
     Logger.log('NO SE CREÓ  fila ' + p.fila + '  ' + p.nombre + ': ' + p.motivo);
   });
+  var resumen = { creadas: plan.crear.map(function (c) { return c.usuario + ' / ' + c.nombre + ' / ' + c.unidad; }),
+                  problemas: plan.problemas.map(function (p) { return p.nombre + ': ' + p.motivo; }) };
   if (!plan.crear.length) {
     Logger.log('=== No hay cuentas nuevas que crear (' + plan.problemas.length + ' problemas) ===');
-    return;
+    return resumen;
   }
 
   escribirFilas(HOJAS.USUARIOS, plan.crear.map(function (c) {
@@ -310,6 +406,7 @@ function crearCuentasDePersonal() {
   });
   Logger.log('=== ' + plan.crear.length + ' cuentas creadas, ' + plan.problemas.length +
              ' filas con problema ===');
+  return resumen;
 }
 
 // Sin argumento, solo crea el secreto si no existe. Con `true` lo reemplaza:

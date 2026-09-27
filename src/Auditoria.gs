@@ -1,4 +1,4 @@
-var ACCIONES_AUDITABLES = ['INGRESO', 'RESTABLECER_CONTRASENA', 'ROTAR_SECRETO'];
+var ACCIONES_AUDITABLES = ['INGRESO', 'RESTABLECER_CONTRASENA', 'ROTAR_SECRETO', 'BAJA_CUENTA'];
 
 // La acción se valida antes de tocar la hoja, para que sea comprobable sin
 // SpreadsheetApp: una acción inventada nunca llega a escribirFilas.

@@ -24,7 +24,8 @@ function contrasenaDeUsuario(usuario) {
 
 // --- Cuentas de persona (fase 7) -------------------------------------------
 // Nutriólogos, psicólogos y (después) promotores tienen cuenta propia. Aquí
-// hay datos de salud mental: su contraseña NO es deducible, es aleatoria.
+// hay datos de salud mental. Su contraseña final es su fecha de nacimiento
+// (ver planDeContrasenasPorFecha, al final); al crearse nace con usuario + '26'.
 
 var ROLES_DE_PERSONA = ['NUTRICION', 'PSICOLOGIA', 'PROMOTOR'];
 
@@ -213,4 +214,52 @@ function planDeCuentasDePersonal(filasPersonal, usuariosExistentes, unidades, az
                  contrasena: contrasenaDeUsuario(usuario) });
   });
   return { crear: crear, problemas: problemas };
+}
+
+// --- Contraseña por fecha de nacimiento (personas) --------------------------
+// Decisión del usuario (2026-09-26): la contraseña de una PERSONA es su fecha
+// de nacimiento ddmmaaaa (sale de su CURP), para que nadie pueda decir que la
+// olvidó. Las coordinaciones siguen con usuario + '26'. La fecha no vive en
+// el repo (es público): viene de la hoja FECHAS_NACIMIENTO del libro.
+
+// Acepta '01121980', 1121980 (Sheets quitó el 0 inicial) o una celda Date.
+// Devuelve '' si no es una fecha real.
+function normalizarFechaDdmmaaaa(valor) {
+  var s;
+  if (Object.prototype.toString.call(valor) === '[object Date]') {
+    if (isNaN(valor.getTime())) return '';
+    s = ('0' + valor.getDate()).slice(-2) + ('0' + (valor.getMonth() + 1)).slice(-2) +
+        valor.getFullYear();
+  } else {
+    s = String(valor == null ? '' : valor).replace(/\D/g, '');
+    if (s.length === 7) s = '0' + s;
+  }
+  if (!/^\d{8}$/.test(s)) return '';
+  var d = +s.slice(0, 2), m = +s.slice(2, 4), a = +s.slice(4);
+  var f = new Date(a, m - 1, d);
+  if (a < 1930 || f.getFullYear() !== a || f.getMonth() !== m - 1 || f.getDate() !== d) return '';
+  return s;
+}
+
+// Cruza cada fila (nombre, rol, fecha) con su cuenta de persona en USUARIOS
+// por nombre + rol. No toca coordinaciones. `fila` = renglón de la hoja.
+function planDeContrasenasPorFecha(filasFechas, usuarios) {
+  var porClave = {};
+  (usuarios || []).forEach(function (u) {
+    if (rolDeCuenta(u) === ROLES.COORDINACION) return;
+    porClave[_claveDePersona(u.nombre) + '|' + rolDeCuenta(u)] = u;
+  });
+  var cambiar = [], problemas = [];
+  (filasFechas || []).forEach(function (f, i) {
+    var nombre = sinTitulo(f.nombre);
+    var rol = String(f.rol || '').trim().toUpperCase();
+    function problema(motivo) { problemas.push({ fila: i + 2, nombre: nombre, motivo: motivo }); }
+    if (ROLES_DE_PERSONA.indexOf(rol) === -1) return problema('rol no es de persona: "' + f.rol + '"');
+    var cuenta = porClave[_claveDePersona(nombre) + '|' + rol];
+    if (!cuenta) return problema('no tiene cuenta en USUARIOS con ese nombre y rol');
+    var fecha = normalizarFechaDdmmaaaa(f.fecha);
+    if (!fecha) return problema('fecha inválida: "' + f.fecha + '"');
+    cambiar.push({ usuario: cuenta.usuario, nombre: cuenta.nombre, rol: rol, contrasena: fecha });
+  });
+  return { cambiar: cambiar, problemas: problemas };
 }
