@@ -7,18 +7,25 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>Alta de Jornada Médica · JS XIX</title>
-<link rel="stylesheet" href="estilos.css?v=20260925a45e72">
+<link rel="stylesheet" href="estilos.css?v=20260927a362c9">
 </head>
 <body>
 
 
 <header>
-  <h1>Alta de Jornada Médica</h1>
+  <h1>Programar jornada</h1>
   <p>Jurisdicción Sanitaria No. XIX Texcoco · PROMSAM</p>
-  <p class="sub">Para jornadas gestionadas por coordinadores o recursos, cualquier día del mes.</p>
+  <p class="sub">Opcional: agenda una jornada futura en el calendario jurisdiccional.</p>
 </header>
 
 <div class="wrap">
+
+  <div class="aviso a-info" role="note">
+    <strong>Esto solo agenda la jornada; no es el reporte.</strong>
+    Lo que se hizo en la jornada (productividad y fotos) se envía en
+    <strong>Reportar jornada</strong>. Si la jornada ya pasó, repórtala directamente ahí:
+    no hace falta programarla antes.
+  </div>
 
   <div id="aviso" class="aviso a-warn oculto" role="status" aria-live="polite"></div>
   <div id="confirmacion" class="card oculto">
@@ -58,7 +65,7 @@
 
 </div>
 
-<script src="config.js?v=20260925a45e72"></script>
-<script src="app.js?v=20260925a45e72"></script>
+<script src="config.js?v=20260927a362c9"></script>
+<script src="app.js?v=20260927a362c9"></script>
 </body>
 </html>

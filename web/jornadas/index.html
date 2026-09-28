@@ -8,13 +8,13 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>Captura de Jornadas · JS XIX</title>
-<link rel="stylesheet" href="estilos.css?v=20260925ff410e">
+<link rel="stylesheet" href="estilos.css?v=20260927d000e9">
 </head>
 <body>
 
 
 <header>
-  <h1>Captura de Jornadas</h1>
+  <h1>Reporte de jornada</h1>
   <p>Jurisdicción Sanitaria No. XIX Texcoco · PROMSAM</p>
   <p class="sub">Al cierre de la jornada, cada módulo reporta su productividad y su evidencia.</p>
   <p class="insignia" id="insigniaRed" aria-live="polite"></p>
@@ -45,9 +45,25 @@
       <button class="b-sec" id="btnModoJornada">Toda la jornada</button>
       <button class="b-sec" id="btnModoModulo">Solo mi módulo</button>
     </div>
+    <p class="mini" id="cambioModo"></p>
 
     <label for="jornada">Jornada</label>
     <select id="jornada"><option value="">Cargando jornadas…</option></select>
+
+    <!-- Jornada que nadie dio de alta: se registra aquí mismo (2026-09-27). -->
+    <div id="cajaNueva" class="oculto">
+      <p class="mini">Si no aparece en la lista, regístrala aquí. No hace falta darla de alta antes.</p>
+      <label for="nuevaFecha">Fecha de la jornada</label>
+      <input id="nuevaFecha" type="date">
+      <label for="nuevaUnidad">Unidad médica de adscripción</label>
+      <select id="nuevaUnidad"></select>
+      <label for="nuevaLugar">Lugar (plaza, kiosco, explanada…)</label>
+      <input id="nuevaLugar" type="text" autocomplete="off">
+      <label for="nuevaLocalidad">Localidad</label>
+      <input id="nuevaLocalidad" type="text" autocomplete="off">
+      <label for="nuevaProyectada">Población esperada (beneficiarios)</label>
+      <input id="nuevaProyectada" type="number" min="1" step="1" inputmode="numeric" placeholder="—">
+    </div>
 
     <div id="datosJornada" class="oculto">
       <p class="mini" id="detalleJornada"></p>
@@ -116,7 +132,7 @@
   </div>
 </div>
 
-<script src="config.js?v=20260925ff410e"></script>
-<script src="app.js?v=20260925ff410e"></script>
+<script src="config.js?v=20260927d000e9"></script>
+<script src="app.js?v=20260927d000e9"></script>
 </body>
 </html>

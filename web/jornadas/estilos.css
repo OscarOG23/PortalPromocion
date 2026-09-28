@@ -223,6 +223,7 @@ button{font-family:inherit;font-size:var(--t-base);font-weight:700;border:none;
   width:auto;min-height:40px}
 .fila-btn{display:flex;gap:var(--e2)}
 .fila-btn .b-prim,.fila-btn .b-sec{width:auto;flex:1}
+.b-enlace{background:none;border:0;padding:0;color:var(--guinda-txt);text-decoration:underline;font:inherit;cursor:pointer;width:auto}
 
 /* ============================================================
    BARRA FIJA INFERIOR

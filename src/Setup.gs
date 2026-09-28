@@ -517,7 +517,7 @@ var DESTINOS_CONOCIDOS = [
     url_sonda: 'https://script.google.com/macros/s/AKfycbygXHFeDDQ2MWTwYoxN2xDd-RitXKUk6--xm3oltO4ZU-MtUVTbnkeEc9qHYgN3Y_8/exec',
     aplica_a: 'ROL:PROMOTOR', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 6, activo: 'TRUE' },
   // Jornadas extramuros de las coordinaciones: JS19 (pantalla en Pages, sonda en su /exec).
-  { destino_id: 'jornadas', nombre: 'Jornadas extramuros', apartado: 'Jornadas',
+  { destino_id: 'jornadas', nombre: 'Reportar jornada', apartado: 'Jornadas',
     clase: 'HERMANO_CON_CONTRASENA',
     url: 'https://oscarog23.github.io/PortalPromocion/jornadas/',
     url_sonda: 'https://script.google.com/macros/s/AKfycbx5DZwA7PCK_xdZT-Aei83rezQKQTpv57AdRcNQ-cgAjnxgBTgofo6WWJj0YV3Bm8sk/exec',
@@ -525,7 +525,7 @@ var DESTINOS_CONOCIDOS = [
   // Alta abierta de jornada médica: mismo backend de JS19, pantalla propia en
   // Pages (no lleva boleto ni coordinación). No es «reportado/pendiente»,
   // es una pantalla de registro: sin sonda.
-  { destino_id: 'jornada_medica', nombre: 'Alta de Jornada Médica', apartado: 'Jornadas',
+  { destino_id: 'jornada_medica', nombre: 'Programar jornada (solo alta, opcional)', apartado: 'Jornadas',
     clase: 'HERMANO_CON_CONTRASENA',
     url: 'https://oscarog23.github.io/PortalPromocion/jornada-medica/',
     aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NINGUNA', orden: 8, activo: 'TRUE' }
@@ -596,4 +596,18 @@ function actualizarDestinosConocidos() {
   invalidarCatalogo(HOJAS.DESTINOS);
   Logger.log(cambios.length ? 'cambios: ' + cambios.join(', ') : 'no había nada que cambiar');
   verificarDestinos();
+}
+
+// Para `clasp run`: cambia el nombre que ve la gente en un destino que ya
+// existe en DESTINOS (actualizarDestinosConocidos solo copia direcciones).
+function renombrarDestino(destinoId, nombre) {
+  var filas = leerTabla(HOJAS.DESTINOS);
+  var fila = filas.filter(function (f) { return f.destino_id === destinoId; })[0];
+  if (!fila) throw new Error('No existe el destino "' + destinoId + '".');
+  if (!String(nombre || '').trim()) throw new Error('Falta el nombre.');
+  var antes = fila.nombre;
+  fila.nombre = String(nombre).trim();
+  reemplazarFilas(HOJAS.DESTINOS, filas);
+  invalidarCatalogo(HOJAS.DESTINOS);
+  return destinoId + ': "' + antes + '" → "' + fila.nombre + '"';
 }

@@ -1020,9 +1020,59 @@ var REGLAS_AUTOCRAT = [
   [/FECHA/, "FECHA"]
 ];
 
+/* Las etiquetas EXACTAS de la plantilla «Ficha Técnica Jornadas 2025» (AutoCrat),
+   tal como salieron en el registro de prepararPlantillaFicha del 2026-09-25.
+   Se consultan antes que las palabras clave: las palabras clave confundían
+   «Total de Consulta Médica» con el total de actividades, Rx/ultrasonido/ECG/
+   densitometría con laboratorio y los talleres de PF con los métodos. */
+var ETIQUETAS_AUTOCRAT_2025 = {
+  "FECHA": "FECHA",
+  "LUGAR DONDE SE REALIZARA PLAZA MUNICIPAL KIOSCO EXPLANADA ETC": "LUGAR",
+  "LOCALIDAD": "LOCALIDAD",
+  "COORDINACION O CEAPS": "COORDINACION",
+  "MUNICIPIO": "MUNICIPIO",
+  "POBLACION ATENDIDA": "POBLACION_ATENDIDA",
+  "POBLACION DE RESPONSABILIDAD POR UNIDAD DE SALUD": "POBLACION_PROYECTADA",
+  "COSTO JORNADA 2025": "COSTO",
+  "AVANCE REAL": "AVANCE",
+  "TOTAL ACTIVIDADES REALIZADAS": "TOTAL_ACTIVIDADES",
+  "TOTAL DE CONSULTA MEDICA OTORGADAS": "CONSULTA_MEDICA",
+  "TOTAL DE CONSULTA ODONTOLOGICA OTORGADAS": "CONSULTA_ODONTOLOGICA",
+  "ESTUDIOS DE LABORATORIO LABORATORIO CLINICO": "LAB_CLINICO",
+  "ESTUDIOS DE LABORATORIO RX": "RX",
+  "ESTUDIOS DE LABORATORIO ULTRASONIDO": "ULTRASONIDO",
+  "ESTUDIOS DE LABORATORIO ELECTROCARDIOGRAMA": "ECG",
+  "ESTUDIOS DE LABORATORIO DENSITOMETRIA OSEA": "DENSITOMETRIA",
+  "VACUNACION UNIVERSAL DOSIS APLICADAS": "VACUNACION_UNIVERSAL",
+  "DETECCION DE ENFERMEDADES CRONICAS CUESTIONARIOS REALIZADOS": "DETECCION_CRONICAS",
+  "DETECCION DE VIH SIFILIS PRUEBAS REALIZADAS": "VIH_SIFILIS",
+  "DETECCION HEPATITIS B PRUEBAS REALZADAS": "HEPATITIS_B",
+  "PROMOCION DE LA SALUD PLANIFICACION FAMILIAR METODOS ENTREGADOS": "PLANIFICACION_FAMILIAR",
+  "PROMOCION DE LA SALUD PLANIFICACION FAMILIAR TALLERES": "TALLER_HIGIENE",
+  "PROMOCION DE LA SALUD PREVENCION IRA EDAS": "TALLER_IRAS_EDAS",
+  "PROMOCION DE LA SALUD SALUD MENTAL TALLERES": "TALLER_SALUD_MENTAL",
+  "PROMOCION DE LA SALUD ACCIDENTES EN EL HOGAR TALLERES": "TALLER_ACCIDENTES",
+  "CUIDADO ANIMAL ESTERILIZACION CANINA FELINA": "ESTERILIZACION_CANINA",
+  "CUIDADO ANIMAL VACUNACION CANINA FELINA": "VACUNACION_CANINA",
+  "TELEMEDICINA": "TELEMEDICINA",
+  "ADITAMENTOS DE APOYO SILLA DE RUEDAS": "SILLAS_RUEDAS",
+  "ADITAMENTOS DE APOYO BASTONES": "BASTONES",
+  "ADITAMENTOS DE APOYO ANDADERAS": "ANDADERAS",
+  "IMAGEN 1 UC": "FOTO_1",
+  "IMAGEN 2 UC": "FOTO_2"
+};
+
+/* Textos fijos de la plantilla 2025 que deben volverse etiquetas: el taller de
+   nutrición venía con un «5» escrito a mano y observaciones no tenía etiqueta. */
+var TEXTOS_FIJOS_PLANTILLA_2025 = [
+  ["Taller de Nutrición 5", "Taller de Nutrición {{TALLER_NUTRICION}}"],
+  ["Observaciones:", "Observaciones: {{OBSERVACIONES}}"]
+];
+
 function etiquetaNuevaDesdeAutocrat(nombre){
   var n = sinAcentosFicha_(nombre).replace(/[^A-Z0-9]+/g, " ").trim();
   if (!n) return "";
+  if (Object.prototype.hasOwnProperty.call(ETIQUETAS_AUTOCRAT_2025, n)) return ETIQUETAS_AUTOCRAT_2025[n];
   var foto = /(?:FOTO|IMAGEN|EVIDENCIA)\S*\s*([12])\b/.exec(n);
   if (foto) return "FOTO_" + foto[1];
   for (var i = 0; i < REGLAS_AUTOCRAT.length; i++){
@@ -1070,6 +1120,8 @@ function foliosFichasDelMes(jornadas, clave){
    El modo llega de la plantilla y se recuerda en el dispositivo.
    ============================================================ */
 var MODO_SERVIDOR = modoDeBusqueda_(location.search);
+// Opción del selector de jornadas para registrar una que nadie dio de alta.
+var VALOR_NUEVA = "__nueva__";
 var ROTULOS = ["Jornada y módulo", "Productividad", "Evidencia", "Revisar y enviar"];
 
 var estado = {
@@ -1108,7 +1160,8 @@ function fichaVacia_(unidadId){
 /* ---------- Arranque ---------- */
 function iniciar(){
   estado.pref = preferencias();
-  estado.modo = MODO_SERVIDOR || Guardado.leer("modo") || "";
+  // Toda la jornada es lo normal (2026-09-27); por módulo queda como opción.
+  estado.modo = MODO_SERVIDOR || Guardado.leer("modo") || "jornada";
 
   var prev = Guardado.leer("capturista");
   if (prev) $("capturista").value = prev;
@@ -1198,6 +1251,23 @@ function aplicarModo(modo){
     modo === "jornada" ? "Total de la jornada" : "Total del módulo";
   $("btnModoJornada").style.borderWidth = modo === "jornada" ? "3px" : "1px";
   $("btnModoModulo").style.borderWidth  = modo === "modulo"  ? "3px" : "1px";
+  pintarCambioModo();
+  if (estado.catalogo) pintarJornadas(estado.jornadas);
+}
+
+/** Enlace discreto para pasar al otro modo sin volver a elegir desde cero. */
+function pintarCambioModo(){
+  var caja = $("cambioModo");
+  caja.textContent = "";
+  if (!estado.modo) return;
+  var otro = estado.modo === "jornada" ? "modulo" : "jornada";
+  caja.appendChild(document.createTextNode(estado.modo === "jornada"
+    ? "Reportas toda la jornada. " : "Reportas solo un módulo. "));
+  var b = document.createElement("button");
+  b.type = "button"; b.className = "b-enlace";
+  b.textContent = otro === "modulo" ? "¿Solo tu módulo?" : "¿Toda la jornada?";
+  b.addEventListener("click", function(){ aplicarModo(otro); });
+  caja.appendChild(b);
 }
 
 $("btnModoJornada").addEventListener("click", function(){ aplicarModo("jornada"); });
@@ -1245,7 +1315,7 @@ function pintarContexto(){
 /* ---------- Jornadas ---------- */
 function pintarJornadas(lista){
   estado.jornadas = lista || [];
-  var s = $("jornada");
+  var s = $("jornada"), previo = s.value;
   vaciarSelect(s, "Selecciona la jornada…");
   estado.jornadas.forEach(function(j){
     var o = document.createElement("option");
@@ -1253,10 +1323,66 @@ function pintarJornadas(lista){
     o.textContent = j.fecha + " · " + j.municipio + " · " + j.lugar;
     s.appendChild(o);
   });
+  // Solo en toda la jornada: un módulo necesita saber qué se convocó.
+  if (estado.modo === "jornada"){
+    var n = document.createElement("option");
+    n.value = VALOR_NUEVA; n.textContent = "➕ No está en la lista: registrarla ahora";
+    s.appendChild(n);
+  }
+  s.value = previo;
+  if (s.value !== previo) s.value = "";
+  $("cajaNueva").classList.toggle("oculto", s.value !== VALOR_NUEVA);
 }
+
+function esNueva(){ return $("jornada").value === VALOR_NUEVA; }
+
+function unidadNueva(){
+  var id = $("nuevaUnidad").value;
+  return estado.fichaDatos.unidades.filter(function(u){ return u.id === id; })[0] || null;
+}
+
+function datosNueva(){
+  return {
+    fecha: $("nuevaFecha").value,
+    unidadId: $("nuevaUnidad").value,
+    lugar: $("nuevaLugar").value.trim(),
+    localidad: $("nuevaLocalidad").value.trim(),
+    poblacionProyectada: Number($("nuevaProyectada").value || 0)
+  };
+}
+
+function hoyIso_(){
+  var d = new Date();
+  return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+}
+
+/** Unidades de la coordinación (en Pages ya vienen filtradas por el boleto). */
+function prepararNueva(){
+  var s = $("nuevaUnidad"), previo = s.value || estado.ficha.unidadId;
+  vaciarSelect(s, estado.fichaDatos.unidades.length ? "Selecciona la unidad…" : "Catálogo de unidades no disponible");
+  estado.fichaDatos.unidades.forEach(function(u){
+    var o = document.createElement("option");
+    o.value = u.id; o.textContent = u.nombre + " · " + u.municipio;
+    s.appendChild(o);
+  });
+  s.value = previo;
+  if (s.value !== previo) s.value = "";
+  if (!$("nuevaFecha").value) $("nuevaFecha").value = hoyIso_();
+}
+
+$("nuevaUnidad").addEventListener("change", function(){
+  // La localidad suele ser la de la unidad: se propone si está vacía.
+  var u = unidadNueva();
+  if (u && !$("nuevaLocalidad").value.trim()) $("nuevaLocalidad").value = u.nombre.toUpperCase();
+});
 
 function jornadaActual(){
   var folio = $("jornada").value;
+  if (folio === VALOR_NUEVA){
+    var d = datosNueva(), u = unidadNueva();
+    return { folio: "", fecha: d.fecha, municipio: u ? u.municipio : "", lugar: d.lugar,
+             localidad: d.localidad, nueva: true };
+  }
   return estado.jornadas.filter(function(x){ return x.folio === folio; })[0] || null;
 }
 
@@ -1288,6 +1414,9 @@ $("jornada").addEventListener("change", function(){
   // "empezar de cero" que limpie estado.datos completo, no un reinicio
   // parcial y silencioso de una sola variable — eso es un cambio más grande,
   // deliberado, que queda fuera de este arreglo.
+  var nueva = esNueva();
+  $("cajaNueva").classList.toggle("oculto", !nueva);
+  if (nueva){ prepararNueva(); $("datosJornada").classList.add("oculto"); pintarModulos([]); return; }
   var j = jornadaActual();
   if (!j){ $("datosJornada").classList.add("oculto"); pintarModulos([]); return; }
   $("datosJornada").classList.remove("oculto");
@@ -1511,6 +1640,18 @@ function construirBloqueFicha(){
   pista.className = "mini";
   pista.textContent = "No va a SAM. Deja vacío lo que no se ofreció; 0 si se ofreció sin atender.";
   caja.appendChild(pista);
+
+  if (esNueva()){
+    // Se pidieron en el paso 1: no se vuelven a pedir.
+    var ya = document.createElement("p");
+    ya.className = "mini";
+    var un = unidadNueva();
+    ya.textContent = "Unidad: " + (un ? un.nombre : "—") + " · población esperada: " +
+      (estado.ficha.poblacionProyectada || "—") + " (del paso 1).";
+    caja.appendChild(ya);
+    COMPLEMENTARIOS_FICHA.forEach(function(c){ caja.appendChild(filaComplementario(c)); });
+    return;
+  }
 
   var lu = document.createElement("label");
   lu.setAttribute("for", "fichaUnidad"); lu.textContent = "Unidad de adscripción";
@@ -2080,6 +2221,14 @@ function validarPaso(){
   if (estado.paso === 1){
     if (!estado.modo) return { mensaje: "Elige si capturas toda la jornada o solo un módulo.", control: "btnModoJornada" };
     if (!$("jornada").value) return { mensaje: "Falta elegir la jornada.", control: "jornada" };
+    if (esNueva()){
+      var d = datosNueva();
+      if (!d.fecha) return { mensaje: "Falta la fecha de la jornada.", control: "nuevaFecha" };
+      if (!d.unidadId) return { mensaje: "Falta la unidad médica.", control: "nuevaUnidad" };
+      if (!d.lugar) return { mensaje: "Falta el lugar de la jornada.", control: "nuevaLugar" };
+      if (!d.localidad) return { mensaje: "Falta la localidad.", control: "nuevaLocalidad" };
+      if (!(d.poblacionProyectada > 0)) return { mensaje: "Falta la población esperada.", control: "nuevaProyectada" };
+    }
     if (estado.modo === "modulo" && !$("modulo").value) return { mensaje: "Falta elegir el módulo.", control: "modulo" };
     if (!$("capturista").value.trim()) return { mensaje: "Falta el nombre de quien reporta.", control: "capturista" };
     return null;
@@ -2092,7 +2241,8 @@ function validarPaso(){
 }
 
 function limpiarInvalidos(){
-  ["jornada","modulo","capturista"].forEach(function(id){ $(id).removeAttribute("aria-invalid"); });
+  ["jornada","modulo","capturista","nuevaFecha","nuevaUnidad","nuevaLugar","nuevaLocalidad","nuevaProyectada"]
+    .forEach(function(id){ $(id).removeAttribute("aria-invalid"); });
 }
 
 function marcarInvalido(id){
@@ -2116,6 +2266,12 @@ $("btnSiguiente").addEventListener("click", function(){
 
   if (estado.paso === 1){
     Guardado.escribir("capturista", $("capturista").value.trim());
+    if (esNueva()){
+      var dn = datosNueva();
+      estado.ficha.unidadId = dn.unidadId;
+      estado.ficha.poblacionProyectada = String(dn.poblacionProyectada);
+      Guardado.escribir("fichaUnidad", dn.unidadId);
+    }
     llenarEtiquetas();
     estado.paso = 2; construirPaso2(); pintarProgreso(); return;
   }
@@ -2127,7 +2283,7 @@ $("btnSiguiente").addEventListener("click", function(){
 /* ---------- Envío ---------- */
 function paquete(){
   var base = {
-    folio: $("jornada").value,
+    folio: esNueva() ? "" : $("jornada").value,
     capturista: $("capturista").value.trim(),
     notas: $("notas").value.trim(),
     fotos: estado.fotos,
@@ -2137,6 +2293,10 @@ function paquete(){
     base.modulos = agruparPorModulo(estado.datos, estado.catalogo);
     base.poblacion = poblacionAtendida(estado.datos, estado.valorTaller);
     base.idLocal = base.folio + "|JORNADA";
+    if (esNueva()){
+      base.nueva = datosNueva();
+      base.idLocal = ["NUEVA", base.nueva.fecha, base.nueva.unidadId, base.nueva.lugar, "JORNADA"].join("|");
+    }
     base.ficha = normalizarFicha(estado.ficha);
   } else {
     base.modulo = $("modulo").value;
@@ -2178,6 +2338,10 @@ function limpiar(){
   pintarFotos();
   $("notas").value = "";
   $("modulo").value = "";
+  if (esNueva()){
+    // La siguiente jornada será otra: la unidad y la fecha se conservan.
+    ["nuevaLugar", "nuevaLocalidad", "nuevaProyectada"].forEach(function(id){ $(id).value = ""; });
+  }
   $("indicadores").textContent = "";
   pintarProgreso();
 }
