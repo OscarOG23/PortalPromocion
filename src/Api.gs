@@ -10,7 +10,8 @@ var ACCIONES_API = {
   iniciarSesion: function (p) { return iniciarSesion(p.usuario, p.contrasena); },
   contexto: function (p) { return contextoDeBoleto(p.boleto); },
   contextoComo: function (p) { return contextoComo(p.boleto, p.usuario); },
-  tablero: function (p) { return tablero(p.boleto); }
+  tablero: function (p) { return tablero(p.boleto); },
+  tableroFila: function (p) { return tableroFila(p.boleto, p.usuario); }
 };
 
 function _json(objeto) {

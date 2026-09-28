@@ -238,27 +238,76 @@ function elegirPestana(cual) {
   el('panel-como').hidden = tablero;
 }
 
-// Consulta las sondas de todas las coordinaciones: puede tardar.
+// El tablero llega en dos tiempos: primero las columnas y las coordinaciones
+// (al instante) y luego cada fila por separado, varias a la vez. Consultar
+// las 22 de un jalón pasaba del límite de 6 minutos de Apps Script.
+var FILAS_A_LA_VEZ = 4;
+var generacionTablero = 0;
+var tableroActual = null;
+
 function cargarTablero() {
   var boleto = leerBoleto();
   if (!boleto) return;
+  var gen = ++generacionTablero;
   tableroCargado = true;
   el('btn-tablero').disabled = true;
-  el('tablero-nota').textContent = 'Consultando a todas las coordinaciones… puede tardar un minuto.';
-  llamar('tablero', { boleto: boleto }, 120000).then(function (r) {
-    el('btn-tablero').disabled = false;
-    if (leerBoleto() !== boleto) return;
+  el('tablero-nota').textContent = 'Preparando el tablero…';
+  llamar('tablero', { boleto: boleto }).then(function (r) {
+    if (gen !== generacionTablero || leerBoleto() !== boleto) return;
     if (!r.ok) {
       tableroCargado = false;
+      el('btn-tablero').disabled = false;
       el('tablero-nota').textContent = r.message || 'No se pudo cargar el tablero.';
       return;
     }
+    tableroActual = r;
     pintarTablero(r);
+    cargarFilas(r, boleto, gen);
   });
+}
+
+function cargarFilas(t, boleto, gen) {
+  var pendientes = t.filas.map(function (f) { return f.usuario; });
+  var terminadas = 0;
+  function notaAvance() {
+    el('tablero-nota').textContent = 'Consultando coordinaciones: ' + terminadas + ' de ' + t.filas.length + '…';
+  }
+  function siguiente() {
+    if (gen !== generacionTablero) return;
+    var usuario = pendientes.shift();
+    if (!usuario) {
+      if (terminadas === t.filas.length) terminarTablero(t);
+      return;
+    }
+    llamar('tableroFila', { boleto: boleto, usuario: usuario }, 150000).then(function (r) {
+      if (gen !== generacionTablero) return;
+      terminadas++;
+      pintarFila(usuario, r.ok ? r : null, t.columnas);
+      notaAvance();
+      siguiente();
+    });
+  }
+  notaAvance();
+  for (var k = 0; k < FILAS_A_LA_VEZ; k++) siguiente();
+}
+
+function terminarTablero(t) {
+  el('btn-tablero').disabled = false;
+  var alDia = t.filas.filter(function (f) { return f.total && f.reportados === f.total; }).length;
+  var mes = parseInt(t.periodo.mes, 10);
+  el('tablero-nota').textContent = alDia + ' de ' + t.filas.length +
+    ' coordinaciones con todo reportado' + (mes >= 1 && mes <= 12 ? ' · ' + MESES[mes - 1] + ' ' + t.periodo.anio : '') +
+    '. Toque una coordinación para ver como ella.';
 }
 
 function celdaEstado(codigo) {
   var td = document.createElement('td');
+  if (codigo === undefined) {
+    td.className = 'c-cargando';
+    td.textContent = '…';
+    td.title = 'Consultando';
+    return td;
+  }
   if (!codigo) {
     td.className = 'c-vacio';
     td.textContent = '—';
@@ -292,9 +341,9 @@ function pintarTablero(t) {
   tabla.appendChild(thead);
 
   var cuerpo = document.createElement('tbody');
-  var alDia = 0;
   t.filas.forEach(function (f) {
     var tr = document.createElement('tr');
+    tr.dataset.usuario = f.usuario;
     var th = document.createElement('th');
     th.scope = 'row';
     var b = nodo('button', 'btn-enlace', f.nombre);
@@ -303,17 +352,27 @@ function pintarTablero(t) {
     b.addEventListener('click', function () { entrarComo(f.usuario); });
     th.appendChild(b);
     tr.appendChild(th);
-    t.columnas.forEach(function (c) { tr.appendChild(celdaEstado(f.estados[c.destino_id])); });
-    tr.appendChild(nodo('td', 'cuenta', f.reportados + '/' + f.total));
-    if (f.total && f.reportados === f.total) alDia++;
+    t.columnas.forEach(function () { tr.appendChild(celdaEstado(undefined)); });
+    tr.appendChild(nodo('td', 'cuenta', '…'));
     cuerpo.appendChild(tr);
   });
   tabla.appendChild(cuerpo);
+}
 
-  var mes = parseInt(t.periodo.mes, 10);
-  el('tablero-nota').textContent = alDia + ' de ' + t.filas.length +
-    ' coordinaciones con todo reportado' + (mes >= 1 && mes <= 12 ? ' · ' + MESES[mes - 1] + ' ' + t.periodo.anio : '') +
-    '. Toque una coordinación para ver como ella.';
+// fila = respuesta de tableroFila, o null si falló (se marca "sin dato").
+function pintarFila(usuario, fila, columnas) {
+  var tr = Array.prototype.filter.call(el('tablero').querySelectorAll('tbody tr'),
+    function (x) { return x.dataset.usuario === usuario; })[0];
+  if (!tr) return;
+  var th = tr.firstChild;
+  tr.replaceChildren(th);
+  columnas.forEach(function (c) {
+    var codigo = fila ? (fila.estados[c.destino_id] || '') : 'NO_SE_SABE';
+    tr.appendChild(celdaEstado(codigo));
+  });
+  tr.appendChild(nodo('td', 'cuenta', fila ? fila.reportados + '/' + fila.total : '—'));
+  var resumen = tableroActual && tableroActual.filas.filter(function (f) { return f.usuario === usuario; })[0];
+  if (resumen && fila) { resumen.reportados = fila.reportados; resumen.total = fila.total; }
 }
 
 function entrarComo(usuario) {

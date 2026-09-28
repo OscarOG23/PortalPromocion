@@ -110,33 +110,56 @@ function contextoComo(boleto, usuarioObjetivo) {
   return ctx;
 }
 
+// El tablero se arma en dos tiempos (2026-09-28): consultar las sondas de las
+// 22 coordinaciones en una sola ejecución pasó de los 6 minutos de Apps
+// Script. `tablero` devuelve al instante las columnas y las coordinaciones;
+// la página pide después cada fila con `tableroFila`, varias a la vez.
+
+function _coordinacionesDelTablero_() {
+  return leerCatalogo(HOJAS.USUARIOS).filter(function (f) {
+    return _cuentaDisponible(f) && rolDeCuenta(f) === ROLES.COORDINACION;
+  }).map(_cuentaPublica).sort(_porNombre);
+}
+
+// Sin sonda (p. ej. Programar jornada, una pantalla de registro) no hay
+// "reportado/pendiente" que mostrar: no entra al tablero ni a su conteo.
+function _destinosDeCoordinacion_(destinos, u) {
+  return destinosDeCuenta(destinos, { rol: u.rol, coordinacion_id: u.coordinacion_id })
+    .filter(function (d) { return String(d.sonda || '').trim().toUpperCase() !== 'NINGUNA'; });
+}
+
 function tablero(boleto) {
   var admin = _adminDeBoleto(boleto);
   if (!admin.ok) return admin;
+  var destinos = leerCatalogo(HOJAS.DESTINOS);
+  var t = armarTablero(_coordinacionesDelTablero_().map(function (u) {
+    return { usuario: u.usuario, nombre: u.nombre, destinos: _destinosDeCoordinacion_(destinos, u), estados: {} };
+  }));
+  t.ok = true;
+  t.periodo = { anio: getConfig('anio_activo'), mes: getConfig('mes_activo') };
+  return t;
+}
+
+// Una fila del tablero: los estados de UNA coordinación (con sus sondas).
+function tableroFila(boleto, usuario) {
+  var admin = _adminDeBoleto(boleto);
+  if (!admin.ok) return admin;
+  var u = _coordinacionesDelTablero_().filter(function (c) {
+    return c.usuario === String(usuario || '').trim().toLowerCase();
+  })[0];
+  if (!u) return { ok: false, code: 'CUENTA_NO_DISPONIBLE', message: 'Esa coordinación no existe o está dada de baja.' };
   var anio = getConfig('anio_activo');
   var mes = getConfig('mes_activo');
-  var destinos = leerCatalogo(HOJAS.DESTINOS);
-  var cuentas = leerCatalogo(HOJAS.USUARIOS).filter(function (f) {
-    return _cuentaDisponible(f) && rolDeCuenta(f) === ROLES.COORDINACION;
-  }).map(_cuentaPublica).sort(_porNombre);
-
-  var pares = cuentas.map(function (u) {
-    return { cuenta: u, destinos: destinosDeCuenta(destinos, { rol: u.rol, coordinacion_id: u.coordinacion_id }) };
+  var destinos = _destinosDeCoordinacion_(leerCatalogo(HOJAS.DESTINOS), u);
+  var nativos = consultarSondasNativas_(destinos, u, anio, mes, secretoDeBoletos());
+  var coordinacion = { coordinacion_id: u.coordinacion_id, nombre: u.nombre, usuario: u.usuario };
+  var estados = {};
+  destinos.forEach(function (d) {
+    var id = String(d.destino_id).trim();
+    estados[id] = String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA
+      ? (nativos[id] || ESTADOS.NO_SE_SABE) : estadoDeDestino(d, coordinacion, anio, mes);
   });
-  var nativos = consultarSondasDeCuentas_(pares, anio, mes, secretoDeBoletos());
-  var filas = pares.map(function (p, i) {
-    var coordinacion = { coordinacion_id: p.cuenta.coordinacion_id, nombre: p.cuenta.nombre,
-                         usuario: p.cuenta.usuario };
-    var estados = {};
-    p.destinos.forEach(function (d) {
-      var id = String(d.destino_id).trim();
-      estados[id] = String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA
-        ? (nativos[i][id] || ESTADOS.NO_SE_SABE) : estadoDeDestino(d, coordinacion, anio, mes);
-    });
-    return { usuario: p.cuenta.usuario, nombre: p.cuenta.nombre, destinos: p.destinos, estados: estados };
-  });
-  var t = armarTablero(filas);
-  t.ok = true;
-  t.periodo = { anio: anio, mes: mes };
-  return t;
+  var fila = armarTablero([{ usuario: u.usuario, nombre: u.nombre, destinos: destinos, estados: estados }]).filas[0];
+  fila.ok = true;
+  return fila;
 }

@@ -814,3 +814,4 @@ a.tarjeta:hover .flecha { color: var(--acento-texto); transform: translate(2px, 
 }
 /* La banda ocupa el lugar que monta sobre la cabecera: el resumen baja. */
 .banda-como:not([hidden]) ~ .resumen { margin-top: 12px; }
+.tablero .c-cargando { color: var(--texto-3); }
