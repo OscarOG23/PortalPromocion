@@ -6,25 +6,29 @@
    {"accion", "args"} en text/plain, igual que el puente del capturador
    (pages/puente.js) y que Atención.
 
-   A diferencia del capturador, este formulario no necesita boleto: el alta
-   es directa, sin sesión administrativa, y no depende de una coordinación
-   (el propio formulario deja elegir la unidad médica). Si llega un
-   ?boleto= en la dirección porque se entró desde la máscara, se quita de
-   la barra igual que en el resto del portal, pero no se usa para nada.
+   El boleto de jornada_medica limita el catálogo y las altas a la coordinación
+   firmada. Sin boleto, conserva el acceso jurisdiccional al catálogo completo
+   para la recepción del cronograma oficial desde el Panel de JS19.
    ============================================================ */
 
 var ACCIONES_PUENTE = ["datosAltaMedica", "altaJornadaMedica"];
 var ESPERA_PUENTE_MS = 45000;
+var CLAVE_BOLETO_MEDICA = "jornadaMedica:boleto";
 
-/** Quita ?boleto= de la dirección si llegó desde la máscara; no se usa. */
-function limpiarBoletoDeUrl_(){
+/** Quita ?boleto= de la dirección y lo conserva durante esta sesión. */
+function leerBoletoMedica_(){
   var q;
-  try { q = new URLSearchParams(location.search); } catch (e){ return; }
-  if (!q.get("boleto")) return;
+  try { q = new URLSearchParams(location.search); } catch (e){ return null; }
+  var boleto = q.get("boleto");
+  if (!boleto){
+    try { return sessionStorage.getItem(CLAVE_BOLETO_MEDICA); } catch (e){ return null; }
+  }
   q["delete"]("boleto");
   var resto = q.toString();
   try { history.replaceState(history.state, "", location.pathname + (resto ? "?" + resto : "") + location.hash); }
-  catch (e){ /* sin history: el parámetro se queda en la barra, no rompe nada */ }
+  catch (e){ /* sin history: el boleto vence solo */ }
+  try { sessionStorage.setItem(CLAVE_BOLETO_MEDICA, boleto); } catch (e){ /* la URL ya se limpió */ }
+  return boleto;
 }
 
 function llamarExec_(accion, args){
@@ -75,7 +79,18 @@ function crearRunnerPuente_(exito, fallo){
 
 /* Sólo en el navegador: en las pruebas de Node no hay location. */
 if (typeof window !== "undefined" && typeof location !== "undefined"){
-  limpiarBoletoDeUrl_();
+  var BOLETO_MEDICA = leerBoletoMedica_();
+  if (BOLETO_MEDICA){
+    var llamadaOriginal = llamar;
+    llamar = function(accion, args){
+      var datos = args && args[0];
+      if (accion === "datosAltaMedica") return llamadaOriginal(accion, BOLETO_MEDICA);
+      if (accion === "altaJornadaMedica" && datos && typeof datos === "object"){
+        datos.boleto = BOLETO_MEDICA;
+      }
+      return llamadaOriginal(accion, args);
+    };
+  }
   window.google = { script: { run: crearRunnerPuente_(null, null) } };
 }
 
@@ -693,5 +708,13 @@ document.getElementById('unidad').addEventListener('change', unidadElegida);
 
 llamar('datosAltaMedica').then(function(d){
   UNIDADES = d.unidades; MODULOS = d.modulos;
+  var alcance = document.getElementById('alcanceAcceso');
+  if (d.coordinacion){
+    alcance.textContent = 'Coordinación: ' + d.coordinacion + ' · Sólo se muestran sus unidades.';
+    alcance.classList.remove('oculto');
+  } else if (d.accesoJurisdiccional){
+    alcance.textContent = 'Recepción jurisdiccional · El Excel oficial se aplica en Panel → Conciliación y se sincroniza con el visor.';
+    alcance.classList.remove('oculto');
+  }
   pintarUnidades(); pintarModulos(); validarFormulario();
 }).catch(function(e){ mostrarAviso('No se pudo cargar el catálogo: ' + (e.message || e)); });
