@@ -7,12 +7,14 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>Alta de Jornada Médica · JS XIX</title>
-<link rel="stylesheet" href="estilos.css?v=20260927a362c9">
+<link rel="stylesheet" href="estilos.css?v=20260927e2e8b8">
 </head>
-<body>
+<body class="jornada-ui">
 
 
+<a class="saltar" href="#form">Ir a la captura</a>
 <header>
+  <p class="marca">ISEM · PROMSAM / TEXCOCO</p>
   <h1>Programar jornada</h1>
   <p>Jurisdicción Sanitaria No. XIX Texcoco · PROMSAM</p>
   <p class="sub">Opcional: agenda una jornada futura en el calendario jurisdiccional.</p>
@@ -36,6 +38,9 @@
   </div>
 
   <form class="card" id="form">
+    <h2>Datos de la próxima jornada</h2>
+    <p class="mini">Completa los tres apartados. Todos los campos son obligatorios.</p>
+    <fieldset class="bloque-form"><legend><span>01</span> Sede y fecha</legend>
     <label for="unidad">Unidad médica de adscripción</label>
     <select id="unidad" required><option value="">Selecciona la unidad…</option></select>
 
@@ -49,23 +54,30 @@
     <input id="localidad" type="text" required>
 
     <label for="lugar">Lugar (dónde se realizará)</label>
-    <input id="lugar" type="text" required>
+    <input id="lugar" type="text" placeholder="Ej. explanada municipal o centro de salud" required>
 
-    <label for="poblacionProyectada">Población proyectada</label>
-    <input id="poblacionProyectada" type="number" min="1" required>
+    <label for="poblacionProyectada">¿Cuántas personas esperan atender?</label>
+    <input id="poblacionProyectada" type="number" min="1" step="1" inputmode="numeric" aria-describedby="ayudaPoblacion" required>
 
-    <label>Módulos convocados</label>
-    <div id="modulos"></div>
+    <p class="mini" id="ayudaPoblacion">Escribe el número estimado de personas, no el número de actividades.</p>
+    </fieldset>
+    <fieldset class="bloque-form"><legend><span>02</span> Servicios que participarán</legend>
+    <p class="mini" id="ayudaModulos">Selecciona al menos un módulo. Puedes marcar varios.</p>
+    <div id="modulos" aria-describedby="ayudaModulos"></div>
+    </fieldset>
+    <fieldset class="bloque-form"><legend><span>03</span> Responsable de la solicitud</legend>
 
     <label for="solicitante">¿Quién solicita?</label>
-    <input id="solicitante" type="text" autocomplete="name" required>
+    <input id="solicitante" type="text" autocomplete="name" placeholder="Nombre completo" required>
 
-    <button class="b-prim" id="btnEnviar" type="submit" disabled>Registrar jornada</button>
+    </fieldset>
+    <p class="mini" id="avanceFormulario" role="status" aria-live="polite">Completa los datos y selecciona al menos un módulo para registrar.</p>
+    <button class="b-prim" aria-describedby="avanceFormulario" id="btnEnviar" type="submit" disabled>Registrar jornada</button>
   </form>
 
 </div>
 
-<script src="config.js?v=20260927a362c9"></script>
-<script src="app.js?v=20260927a362c9"></script>
+<script src="config.js?v=20260927e2e8b8"></script>
+<script src="app.js?v=20260927e2e8b8"></script>
 </body>
 </html>

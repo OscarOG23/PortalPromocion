@@ -591,7 +591,7 @@ function drenarCola(){
 function miles(n){ return Number(n || 0).toLocaleString("es-MX"); }
 
 
-var UNIDADES = [], MODULOS = [];
+var UNIDADES = [], MODULOS = [], enviandoAlta = false;
 
 function pintarUnidades(){
   var sel = document.getElementById('unidad');
@@ -628,8 +628,15 @@ function modulosSeleccionados(){
 
 function validarFormulario(){
   var obligatorios = ['unidad', 'fecha', 'localidad', 'lugar', 'poblacionProyectada', 'solicitante'];
-  var completos = obligatorios.every(function(id){ return document.getElementById(id).value.trim(); });
-  document.getElementById('btnEnviar').disabled = !(completos && modulosSeleccionados().length);
+  var pendientes = obligatorios.filter(function(id){
+    var campo = document.getElementById(id);
+    return !campo.value.trim() || !campo.validity.valid;
+  });
+  var modulos = modulosSeleccionados().length;
+  document.getElementById('btnEnviar').disabled = enviandoAlta || !!pendientes.length || !modulos;
+  document.getElementById('avanceFormulario').textContent = enviandoAlta ? 'Registrando la jornada…' :
+    pendientes.length ? 'Faltan ' + pendientes.length + ' campos por completar correctamente' + (!modulos ? ' y elegir al menos un módulo.' : '.') :
+    !modulos ? 'Selecciona al menos un módulo para continuar.' : 'Todo listo: ' + modulos + ' módulos seleccionados. Ya puedes registrar la jornada.';
 }
 
 function mostrarAviso(msg){
@@ -641,6 +648,7 @@ document.getElementById('form').addEventListener('input', validarFormulario);
 
 document.getElementById('form').addEventListener('submit', function(ev){
   ev.preventDefault();
+  if (enviandoAlta || !document.getElementById('form').reportValidity() || !modulosSeleccionados().length) return;
   document.getElementById('aviso').classList.add('oculto');
   var datos = {
     unidadId: document.getElementById('unidad').value,
@@ -651,7 +659,10 @@ document.getElementById('form').addEventListener('submit', function(ev){
     modulos: modulosSeleccionados(),
     solicitante: document.getElementById('solicitante').value.trim()
   };
-  document.getElementById('btnEnviar').disabled = true;
+  enviandoAlta = true;
+  document.getElementById('btnEnviar').textContent = 'Registrando…';
+  document.getElementById('form').setAttribute('aria-busy', 'true');
+  validarFormulario();
   llamar('altaJornadaMedica', datos).then(function(r){
     document.getElementById('folioResultado').textContent = r.folio;
     document.getElementById('mensajeResultado').textContent = r.actualizada
@@ -659,9 +670,15 @@ document.getElementById('form').addEventListener('submit', function(ev){
       : 'Jornada nueva creada.';
     document.getElementById('confirmacion').classList.remove('oculto');
     document.getElementById('form').classList.add('oculto');
+    document.getElementById('confirmacion').setAttribute('tabindex', '-1');
+    document.getElementById('confirmacion').focus();
   }).catch(function(e){
     mostrarAviso(e.message || String(e));
-    document.getElementById('btnEnviar').disabled = false;
+  }).finally(function(){
+    enviandoAlta = false;
+    document.getElementById('btnEnviar').textContent = 'Registrar jornada';
+    document.getElementById('form').removeAttribute('aria-busy');
+    validarFormulario();
   });
 });
 

@@ -1249,6 +1249,8 @@ function aplicarModo(modo){
   $("cajaEtiqueta").classList.toggle("oculto", modo !== "jornada");
   $("rotuloTotal").textContent =
     modo === "jornada" ? "Total de la jornada" : "Total del módulo";
+  $("btnModoJornada").setAttribute("aria-pressed", String(modo === "jornada"));
+  $("btnModoModulo").setAttribute("aria-pressed", String(modo === "modulo"));
   $("btnModoJornada").style.borderWidth = modo === "jornada" ? "3px" : "1px";
   $("btnModoModulo").style.borderWidth  = modo === "modulo"  ? "3px" : "1px";
   pintarCambioModo();
@@ -1280,6 +1282,7 @@ function pintarProgreso(){
     var n = document.createElement("div");
     n.className = "paso-num" + (i === estado.paso ? " activo" : (i < estado.paso ? " hecho" : ""));
     n.textContent = i < estado.paso ? "✓" : String(i);
+    n.setAttribute("aria-label", "Paso " + i + ": " + ROTULOS[i - 1]);
     if (i === estado.paso) n.setAttribute("aria-current", "step");
     c.appendChild(n);
     if (i < 4){
@@ -2050,6 +2053,8 @@ function expandirExtras(){
 }
 
 /* ---------- Fotos ---------- */
+$("agregarFoto").addEventListener("click", function(){ $("archivoFoto").click(); });
+
 $("archivoFoto").addEventListener("change", function(e){
   var etiqueta = estado.modo === "jornada"
     ? ($("etiquetaFoto").value || "JORNADA")
@@ -2069,8 +2074,10 @@ $("archivoFoto").addEventListener("change", function(e){
 function pintarFotos(){
   var g = $("galeria");
   g.textContent = "";
-  var add = document.createElement("label");
-  add.className = "add"; add.setAttribute("for", "archivoFoto"); add.textContent = "+";
+  var add = document.createElement("button");
+  add.type = "button"; add.className = "add"; add.textContent = "+ Agregar fotos";
+  add.onclick = function(){ $("archivoFoto").click(); };
+  $("contadorFotos").textContent = estado.fotos.length + " fotos agregadas";
   g.appendChild(add);
   estado.fotos.forEach(function(f, i){
     var d = document.createElement("div"); d.className = "thumb";

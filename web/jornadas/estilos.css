@@ -346,3 +346,82 @@ table.sem td.c{text-align:center}
   header,.barra,.acciones,.progreso{display:none}
   body{background:#fff}
 }
+
+/* Captura institucional inspirada en SIPS. Alcance: reporte y programación. */
+body.jornada-ui{
+  --guinda:#691b32;--guinda-osc:#4a1223;--guinda-txt:#691b32;
+  --oro:#b78d55;--oro-med:#e7d2a0;--oro-cl:#f3ead8;
+  --tinta:#271d20;--tinta-sua:#57464b;--tinta-ten:#71615e;
+  --fondo:#f6f1ea;--papel:#fbf8f3;--linea:#e4dccf;--linea-sua:#eee6dc;
+  --ok-cl:#e7f3ec;--alerta-cl:#fdf0ee;--ambar-cl:#fdf6e3;
+  --ancho-lectura:760px;--r-ch:12px;--r-gr:20px;--t-xs:14px;--t-sm:15px;
+  color-scheme:light;font-family:"Segoe UI",system-ui,sans-serif;line-height:1.55;
+  background:radial-gradient(ellipse at 50% 0,rgba(105,27,50,.07),transparent 560px),var(--fondo);
+}
+.jornada-ui header{
+  position:relative;max-width:732px;margin:0 auto;padding:26px 28px 24px;
+  border-radius:0 0 24px 24px;border-bottom:3px solid var(--oro);
+  background:radial-gradient(circle at 95% 0,rgba(201,162,75,.22),transparent 45%),linear-gradient(125deg,#4a1223,#691b32 65%,#8b2547);
+}
+.jornada-ui header .marca{font-size:12px;font-weight:700;letter-spacing:.15em;color:#e7d2a0;opacity:1;margin-bottom:12px}
+.jornada-ui header h1{font:600 clamp(27px,4vw,34px)/1.15 Georgia,serif;letter-spacing:-.025em;margin-bottom:10px}
+.jornada-ui header p{font-size:14px;opacity:1;color:#f3e9e6}
+.jornada-ui header .sub{opacity:1;color:#e7d2a0;margin-top:8px}
+.jornada-ui .insignia:empty{display:none}
+.jornada-ui .insignia{font-size:12px}
+.jornada-ui .wrap{padding:20px 14px 160px}
+.jornada-ui .card{padding:26px;background:var(--papel);box-shadow:0 2px 3px rgba(74,18,35,.03),0 10px 30px rgba(74,18,35,.06)}
+.jornada-ui .card h2{font:600 24px/1.25 Georgia,serif;text-transform:none;letter-spacing:-.02em;border:0;padding:0;margin-bottom:10px}
+.jornada-ui .mini{line-height:1.55}
+.jornada-ui label{margin-top:20px;margin-bottom:7px}
+.jornada-ui select,.jornada-ui input,.jornada-ui textarea{background:#fff;border-width:1.5px;min-width:0;max-width:100%}
+.jornada-ui select:focus,.jornada-ui input:focus,.jornada-ui textarea:focus{border-color:var(--guinda);box-shadow:0 0 0 3px rgba(105,27,50,.10)}
+.jornada-ui :focus-visible{outline:3px solid var(--guinda);outline-offset:3px}
+.jornada-ui button{touch-action:manipulation}
+.jornada-ui .b-prim{box-shadow:0 5px 14px rgba(105,27,50,.16)}
+.jornada-ui .b-sec{background:#fff;border-color:var(--linea);color:var(--guinda)}
+.jornada-ui .progreso{max-width:704px;margin:22px auto 0;padding:0 14px;background:transparent;border:0}
+.jornada-ui .progreso .rotulo{text-transform:none;letter-spacing:0;margin-top:14px;color:var(--guinda);font-size:14px}
+.jornada-ui .paso-num{min-width:40px;min-height:40px;background:var(--papel)}
+.jornada-ui .paso-num.activo{background:var(--guinda)}
+.jornada-ui .paso-num.hecho{background:var(--oro-cl);color:var(--guinda);border-color:var(--oro)}
+.jornada-ui .paso-linea.hecho{background:var(--oro)}
+.jornada-ui .contexto{position:relative;max-width:704px;margin:16px auto 0;border:1px solid var(--linea);border-radius:12px}
+.jornada-ui .contexto .ctx-txt{white-space:normal}
+.jornada-ui #selectorModo{gap:12px;margin-top:22px}
+.jornada-ui #selectorModo button{text-align:left;padding:16px;min-height:100px;line-height:1.4}
+.jornada-ui #selectorModo button[aria-pressed="true"]{background:var(--oro-cl);border-color:var(--guinda)}
+.jornada-ui .opcion-ayuda{display:block;font-size:13px;font-weight:400;color:var(--tinta-sua);margin-top:7px}
+.jornada-ui #cambioModo:empty{display:none}
+.jornada-ui #cajaNueva{padding:0 16px 16px;margin:16px 0;border-left:3px solid var(--oro);background:var(--oro-cl);border-radius:0 12px 12px 0}
+.jornada-ui .barra{background:rgba(251,248,243,.98);border-top:1px solid var(--linea);padding-bottom:env(safe-area-inset-bottom)}
+.jornada-ui .barra .in{max-width:732px}
+.jornada-ui .ind{padding:18px 0}
+.jornada-ui .ind-nom{font-size:16px;line-height:1.5}
+.jornada-ui .stepper input{font-variant-numeric:tabular-nums}
+.jornada-ui .fotos{grid-template-columns:repeat(3,minmax(0,1fr))}
+.jornada-ui .add{font-size:15px;line-height:1.4;font-weight:600;color:var(--guinda);margin:0;padding:10px;background:#fff;border-color:var(--oro);min-height:90px}
+.jornada-ui .thumb button{width:44px;height:44px;min-height:44px}
+.jornada-ui .contador-fotos{display:inline-block;border:1px solid var(--linea);border-radius:99px;padding:5px 12px;font-size:14px;color:var(--guinda);background:#fff}
+.jornada-ui .opcional{font-weight:400;color:var(--tinta-ten)}
+.jornada-ui .bloque-form{border:0;border-top:1px solid var(--linea);padding:20px 0 28px;margin:24px 0 0;min-width:0}
+.jornada-ui .bloque-form legend{font-weight:600;font-size:17px;color:var(--guinda);padding-right:16px}
+.jornada-ui .bloque-form legend span{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;font-size:12px;background:var(--oro-cl);margin-right:8px}
+.jornada-ui .bloque-form label:first-of-type{margin-top:5px}
+.jornada-ui #modulos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.jornada-ui #modulos .chk{display:flex;align-items:center;gap:12px;margin:0;padding:12px;border:1px solid var(--linea);border-radius:12px;background:#fff;cursor:pointer;min-height:64px;font-size:14px;font-weight:500}
+.jornada-ui #modulos input{width:22px;height:22px;min-height:22px;flex:0 0 22px;accent-color:var(--guinda)}
+.jornada-ui #modulos .chk:has(input:checked){background:var(--oro-cl);border-color:var(--guinda);box-shadow:inset 3px 0 var(--guinda)}
+.jornada-ui #avanceFormulario{padding:14px;background:var(--oro-cl);border-radius:12px}
+.jornada-ui .saltar{position:absolute;left:12px;top:-100px;z-index:100;background:#fff;color:var(--guinda);padding:12px;border-radius:8px}
+.jornada-ui .saltar:focus{top:12px}
+@media(max-width:520px){
+  .jornada-ui header{padding:22px 20px;border-radius:0 0 20px 20px}
+  .jornada-ui .card{padding:20px 16px}
+  .jornada-ui .wrap{padding-top:16px}
+  .jornada-ui #modulos{grid-template-columns:1fr}
+  .jornada-ui #selectorModo{flex-direction:column}
+  .jornada-ui #selectorModo button{min-height:78px;width:100%}
+  .jornada-ui .card h2{font-size:22px}
+  .jornada-ui .fotos{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

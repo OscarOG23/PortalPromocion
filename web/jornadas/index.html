@@ -8,12 +8,14 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>Captura de Jornadas · JS XIX</title>
-<link rel="stylesheet" href="estilos.css?v=20260927d000e9">
+<link rel="stylesheet" href="estilos.css?v=20260927f6f8d7">
 </head>
-<body>
+<body class="jornada-ui">
 
 
+<a class="saltar" href="#p1">Ir a la captura</a>
 <header>
+  <p class="marca">ISEM · PROMSAM / TEXCOCO</p>
   <h1>Reporte de jornada</h1>
   <p>Jurisdicción Sanitaria No. XIX Texcoco · PROMSAM</p>
   <p class="sub">Al cierre de la jornada, cada módulo reporta su productividad y su evidencia.</p>
@@ -39,11 +41,12 @@
 
   <!-- ====================== PASO 1 ====================== -->
   <section class="card" id="p1">
-    <h2>Jornada y módulo</h2>
+    <h2>¿Qué vas a reportar?</h2>
+    <p class="mini">Elige el alcance de tu captura. Después registrarás las actividades, las fotos y revisarás el reporte.</p>
 
     <div id="selectorModo" class="fila-btn" style="margin-bottom:16px">
-      <button class="b-sec" id="btnModoJornada">Toda la jornada</button>
-      <button class="b-sec" id="btnModoModulo">Solo mi módulo</button>
+      <button class="b-sec" id="btnModoJornada" aria-pressed="false">Toda la jornada<span class="opcion-ayuda">Reúne las actividades de todos los módulos.</span></button>
+      <button class="b-sec" id="btnModoModulo" aria-pressed="false">Solo mi módulo<span class="opcion-ayuda">Captura únicamente el servicio que atendiste.</span></button>
     </div>
     <p class="mini" id="cambioModo"></p>
 
@@ -83,7 +86,7 @@
 
   <!-- ====================== PASO 2 ====================== -->
   <section class="card oculto" id="p2">
-    <h2>Productividad</h2>
+    <h2>Actividades realizadas</h2>
     <p class="mini" id="pistaInd">Deja vacío lo que no se ofreció. No pongas cero de relleno.</p>
     <div id="taller" class="oculto"></div>
     <div id="indicadores"></div>
@@ -97,23 +100,25 @@
   <!-- ====================== PASO 3 ====================== -->
   <section class="card oculto" id="p3">
     <h2>Evidencia fotográfica</h2>
-    <p class="mini">Mínimo 3 fotos: montaje, actividad en curso y panorámica.</p>
+    <p class="mini" id="ayudaFotos">Agrega al menos 3 fotos: montaje, actividad en curso y panorámica. Puedes seleccionarlas desde tu galería.</p>
+    <p class="contador-fotos" id="contadorFotos" role="status">0 fotos agregadas</p>
     <div id="cajaEtiqueta" class="oculto">
       <label for="etiquetaFoto">Las siguientes fotos son de</label>
       <select id="etiquetaFoto"></select>
     </div>
     <div class="fotos" id="galeria">
-      <label class="add" for="archivoFoto">+</label>
+      <button class="add" type="button" id="agregarFoto">+ Agregar fotos</button>
     </div>
-    <input id="archivoFoto" type="file" accept="image/*" capture="environment"
+    <input id="archivoFoto" type="file" accept="image/*" aria-describedby="ayudaFotos"
            multiple class="oculto">
-    <label for="notas">Observaciones</label>
+    <label for="notas">Observaciones <span class="opcional">(opcional)</span></label>
     <textarea id="notas" rows="2" placeholder="Incidencias, faltantes, apoyo municipal…"></textarea>
   </section>
 
   <!-- ====================== PASO 4 ====================== -->
   <section class="card oculto" id="p4">
     <h2>Revisar y enviar</h2>
+    <p class="mini">Confirma las cifras y las fotos. Si necesitas corregir algo, usa Atrás antes de enviar.</p>
     <div id="avisoFotos" class="aviso a-warn oculto"></div>
     <div id="repaso"></div>
     <div class="recon oculto" id="recon"></div>
@@ -132,7 +137,7 @@
   </div>
 </div>
 
-<script src="config.js?v=20260927d000e9"></script>
-<script src="app.js?v=20260927d000e9"></script>
+<script src="config.js?v=20260927f6f8d7"></script>
+<script src="app.js?v=20260927f6f8d7"></script>
 </body>
 </html>
