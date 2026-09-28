@@ -8,7 +8,9 @@
 
 var ACCIONES_API = {
   iniciarSesion: function (p) { return iniciarSesion(p.usuario, p.contrasena); },
-  contexto: function (p) { return contextoDeBoleto(p.boleto); }
+  contexto: function (p) { return contextoDeBoleto(p.boleto); },
+  contextoComo: function (p) { return contextoComo(p.boleto, p.usuario); },
+  tablero: function (p) { return tablero(p.boleto); }
 };
 
 function _json(objeto) {
@@ -55,7 +57,13 @@ function despachar(peticion, acciones) {
 function contextoDeBoleto(boleto) {
   var cuenta = usuarioDeBoleto(boleto);
   if (!cuenta.ok) return cuenta;
-  var u = cuenta.usuario;
+  if (esAdmin(cuenta.usuario)) return contextoDeAdmin_(cuenta.usuario);
+  return contextoDeCuenta_(cuenta.usuario);
+}
+
+// El portal de una cuenta (coordinación o persona). `u` = _cuentaPublica.
+// También lo usa "ver como" del admin: los boletos salen a nombre de `u`.
+function contextoDeCuenta_(u) {
   // En USUARIOS, `nombre` es el nombre de la coordinación (lo pone así
   // crearCuentasDeCoordinaciones()) o, en una cuenta de persona, el de ella.
   var coordinacion = { coordinacion_id: u.coordinacion_id, nombre: u.nombre, usuario: u.usuario };

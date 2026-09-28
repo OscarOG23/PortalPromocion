@@ -717,3 +717,100 @@ a.tarjeta:hover .flecha { color: var(--acento-texto); transform: translate(2px, 
   }
   .esq { animation: none; }
 }
+
+/* --- Administración (tablero y "ver como") ------------------------------- */
+.admin {
+  position: relative;
+  margin-top: -14px;
+  padding: 14px 16px 18px;
+  border-radius: var(--r-lg);
+  background: var(--superficie);
+  box-shadow: var(--sombra-flotante);
+}
+.admin-pestanas {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  margin-bottom: 14px;
+  border-radius: var(--r-sm);
+  background: var(--superficie-2);
+}
+.admin-pestanas button {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto-2);
+}
+.admin-pestanas button[aria-selected="true"] {
+  color: var(--texto);
+  background: var(--superficie);
+  box-shadow: var(--sombra-tarjeta);
+}
+.admin select {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 12px;
+  font-size: 17px;
+  color: var(--texto);
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: var(--r-md);
+}
+.tablero-caja { overflow-x: auto; margin-top: 10px; -webkit-overflow-scrolling: touch; }
+.tablero { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+.tablero th, .tablero td { padding: 7px 6px; border-bottom: 1px solid var(--separador); text-align: center; }
+.tablero thead th { font-weight: 600; color: var(--texto-2); vertical-align: bottom; }
+.tablero th[scope="row"] {
+  position: sticky;
+  left: 0;
+  text-align: left;
+  background: var(--superficie);
+  white-space: nowrap;
+}
+.tablero td svg { font-size: 18px; vertical-align: middle; }
+.tablero .c-REPORTADO { color: var(--ok-barra); }
+.tablero .c-PENDIENTE { color: var(--pend-barra); }
+.tablero .c-NO_SE_SABE { color: var(--nd-barra); }
+.tablero .c-vacio { color: var(--texto-3); }
+.tablero .cuenta { font-variant-numeric: tabular-nums; color: var(--texto-2); }
+.btn-enlace {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--acento-texto);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.btn-secundario {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--r-md);
+  background: var(--superficie-2);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto);
+}
+.banda-como {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  position: relative;
+  margin-top: -14px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  font-size: 14px;
+  color: var(--pend-texto);
+  background: var(--pend-fondo);
+  box-shadow: var(--sombra-tarjeta);
+}
+/* La banda ocupa el lugar que monta sobre la cabecera: el resumen baja. */
+.banda-como:not([hidden]) ~ .resumen { margin-top: 12px; }

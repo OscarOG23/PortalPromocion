@@ -28,6 +28,7 @@ var DISCIPLINAS = { NUTRICION: 'Nutrición', PSICOLOGIA: 'Psicología', PROMOTOR
 // respuesta sin rol, de antes de la fase 7) se ve igual que siempre.
 function textosDeCuenta(usuario) {
   var rol = String((usuario && usuario.rol) || '').toUpperCase();
+  if (rol === 'ADMIN') return { sobre: 'Administración', vacio: '' };
   if (!rol || rol === 'COORDINACION') {
     return { sobre: 'Coordinación',
              vacio: 'Todavía no hay capturadores asignados a su coordinación.' };
@@ -35,6 +36,21 @@ function textosDeCuenta(usuario) {
   var partes = [DISCIPLINAS[rol] || rol];
   if (usuario.unidad) partes.push(usuario.unidad);
   return { sobre: partes.join(' · '), vacio: 'Aún no hay formularios para su perfil.' };
+}
+
+// Admin "viendo como" otra cuenta: vive en la pestaña (sessionStorage), así
+// que cerrar la pestaña devuelve al admin a su propia vista.
+var CLAVE_COMO = 'mascara_como';
+var verComo = leerComo();
+
+function leerComo() {
+  try { return sessionStorage.getItem(CLAVE_COMO) || ''; } catch (e) { return ''; }
+}
+function guardarComo(usuario) {
+  verComo = usuario || '';
+  try {
+    if (verComo) sessionStorage.setItem(CLAVE_COMO, verComo); else sessionStorage.removeItem(CLAVE_COMO);
+  } catch (e) {}
 }
 
 var MINUTOS_REFRESCO = 60;
@@ -54,10 +70,10 @@ function guardarBoleto(b) {
 // Content-Type text/plain A PROPÓSITO: con application/json el navegador manda
 // antes un OPTIONS que Apps Script no contesta (no existe doOptions), y la
 // llamada muere. doPost recibe el cuerpo igual en e.postData.contents.
-function llamar(accion, datos) {
+function llamar(accion, datos, esperaMs) {
   var cuerpo = Object.assign({ accion: accion }, datos || {});
   var control = new AbortController();
-  var reloj = setTimeout(function () { control.abort(); }, 20000);
+  var reloj = setTimeout(function () { control.abort(); }, esperaMs || 20000);
   return fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                            body: JSON.stringify(cuerpo), signal: control.signal })
     .then(function (r) { return r.json(); })
@@ -140,10 +156,21 @@ function pintarPortal(ctx) {
     periodo.hidden = true;
   }
 
-  pintarResumen(ctx.destinos);
+  var esAdminCtx = ctx.usuario.rol === 'ADMIN';
+  el('admin').hidden = !esAdminCtx;
+  pintarBandaComo(ctx.verComo, ctx.usuario.nombre);
 
   var contenedor = el('apartados');
   contenedor.replaceChildren();
+  if (esAdminCtx) {
+    el('resumen').hidden = true;
+    el('sin-destinos').hidden = true;
+    pintarAdmin(ctx);
+    mostrar('portal');
+    return;
+  }
+
+  pintarResumen(ctx.destinos);
   var grupos = {};
   var orden = [];
   ctx.destinos.forEach(function (d) {
@@ -164,6 +191,136 @@ function pintarPortal(ctx) {
 
   el('sin-destinos').hidden = ctx.destinos.length > 0;
   mostrar('portal');
+}
+
+// --- Administración -------------------------------------------------------------
+
+function pintarBandaComo(como, nombre) {
+  var banda = el('banda-como');
+  banda.hidden = !como;
+  if (como) el('banda-como-texto').textContent = 'Viendo como ' + nombre + '.';
+}
+
+var ETIQUETAS_GRUPO = { NUTRICION: 'Nutrición', PSICOLOGIA: 'Psicología', PROMOTOR: 'Promoción' };
+var tableroCargado = false;
+
+function pintarAdmin(ctx) {
+  var sel = el('ver-como');
+  var previo = sel.value;
+  sel.replaceChildren();
+  var grupos = [{ etiqueta: 'Coordinaciones', cuentas: ctx.admin.coordinaciones }];
+  var porRol = {};
+  ctx.admin.personas.forEach(function (p) {
+    if (!porRol[p.rol]) { porRol[p.rol] = []; grupos.push({ etiqueta: ETIQUETAS_GRUPO[p.rol] || p.rol, cuentas: porRol[p.rol] }); }
+    porRol[p.rol].push(p);
+  });
+  grupos.forEach(function (g) {
+    if (!g.cuentas.length) return;
+    var og = document.createElement('optgroup');
+    og.label = g.etiqueta;
+    g.cuentas.forEach(function (c) {
+      var o = document.createElement('option');
+      o.value = c.usuario;
+      o.textContent = c.nombre + (c.unidad ? ' · ' + c.unidad : '');
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  if (previo) sel.value = previo;
+  if (!tableroCargado) cargarTablero();
+}
+
+function elegirPestana(cual) {
+  var tablero = cual === 'tablero';
+  el('tab-tablero').setAttribute('aria-selected', tablero ? 'true' : 'false');
+  el('tab-como').setAttribute('aria-selected', tablero ? 'false' : 'true');
+  el('panel-tablero').hidden = !tablero;
+  el('panel-como').hidden = tablero;
+}
+
+// Consulta las sondas de todas las coordinaciones: puede tardar.
+function cargarTablero() {
+  var boleto = leerBoleto();
+  if (!boleto) return;
+  tableroCargado = true;
+  el('btn-tablero').disabled = true;
+  el('tablero-nota').textContent = 'Consultando a todas las coordinaciones… puede tardar un minuto.';
+  llamar('tablero', { boleto: boleto }, 120000).then(function (r) {
+    el('btn-tablero').disabled = false;
+    if (leerBoleto() !== boleto) return;
+    if (!r.ok) {
+      tableroCargado = false;
+      el('tablero-nota').textContent = r.message || 'No se pudo cargar el tablero.';
+      return;
+    }
+    pintarTablero(r);
+  });
+}
+
+function celdaEstado(codigo) {
+  var td = document.createElement('td');
+  if (!codigo) {
+    td.className = 'c-vacio';
+    td.textContent = '—';
+    td.title = 'No le aplica';
+    return td;
+  }
+  codigo = ETIQUETAS_ESTADO[codigo] ? codigo : 'NO_SE_SABE';
+  td.className = 'c-' + codigo;
+  td.title = ETIQUETAS_ESTADO[codigo];
+  td.appendChild(icono(ICONOS_ESTADO[codigo]));
+  td.appendChild(nodo('span', 'solo-lector', ETIQUETAS_ESTADO[codigo]));
+  return td;
+}
+
+function pintarTablero(t) {
+  var tabla = el('tablero');
+  tabla.replaceChildren();
+  var thead = document.createElement('thead');
+  var cab = document.createElement('tr');
+  var esquina = document.createElement('th');
+  esquina.scope = 'col';
+  esquina.textContent = 'Coordinación';
+  cab.appendChild(esquina);
+  t.columnas.concat([{ nombre: 'Al día' }]).forEach(function (c) {
+    var th = document.createElement('th');
+    th.scope = 'col';
+    th.textContent = c.nombre;
+    cab.appendChild(th);
+  });
+  thead.appendChild(cab);
+  tabla.appendChild(thead);
+
+  var cuerpo = document.createElement('tbody');
+  var alDia = 0;
+  t.filas.forEach(function (f) {
+    var tr = document.createElement('tr');
+    var th = document.createElement('th');
+    th.scope = 'row';
+    var b = nodo('button', 'btn-enlace', f.nombre);
+    b.type = 'button';
+    b.title = 'Ver como ' + f.nombre;
+    b.addEventListener('click', function () { entrarComo(f.usuario); });
+    th.appendChild(b);
+    tr.appendChild(th);
+    t.columnas.forEach(function (c) { tr.appendChild(celdaEstado(f.estados[c.destino_id])); });
+    tr.appendChild(nodo('td', 'cuenta', f.reportados + '/' + f.total));
+    if (f.total && f.reportados === f.total) alDia++;
+    cuerpo.appendChild(tr);
+  });
+  tabla.appendChild(cuerpo);
+
+  var mes = parseInt(t.periodo.mes, 10);
+  el('tablero-nota').textContent = alDia + ' de ' + t.filas.length +
+    ' coordinaciones con todo reportado' + (mes >= 1 && mes <= 12 ? ' · ' + MESES[mes - 1] + ' ' + t.periodo.anio : '') +
+    '. Toque una coordinación para ver como ella.';
+}
+
+function entrarComo(usuario) {
+  if (!usuario) return;
+  guardarComo(usuario);
+  mostrar('cargando');
+  cargarContexto();
 }
 
 function codigoDeEstado(d) {
@@ -260,10 +417,21 @@ function cargarContexto() {
   var boleto = leerBoleto();
   if (!boleto) { mostrarAcceso(''); return; }
   var entrandoAlPortal = el('portal').hidden;
-  llamar('contexto', { boleto: boleto }).then(function (r) {
+  var como = verComo;
+  var peticion = como ? llamar('contextoComo', { boleto: boleto, usuario: como })
+                      : llamar('contexto', { boleto: boleto });
+  peticion.then(function (r) {
     // El usuario pudo haber salido (o cambiado de boleto) mientras la
     // llamada estaba en el aire: una respuesta vieja no debe pisar la nueva.
-    if (leerBoleto() !== boleto) return;
+    if (leerBoleto() !== boleto || verComo !== como) return;
+
+    // "Ver como" ya no procede (la cuenta se dio de baja, o este boleto no es
+    // de admin): se vuelve a la vista propia.
+    if (como && (r.code === 'NO_AUTORIZADO' || r.code === 'CUENTA_NO_DISPONIBLE')) {
+      guardarComo('');
+      cargarContexto();
+      return;
+    }
 
     if (r.ok) {
       ultimaCarga = Date.now();
@@ -340,7 +508,19 @@ el('btn-ver-clave').addEventListener('click', function () {
   campo.focus();
 });
 
+el('tab-tablero').addEventListener('click', function () { elegirPestana('tablero'); });
+el('tab-como').addEventListener('click', function () { elegirPestana('como'); });
+el('btn-tablero').addEventListener('click', cargarTablero);
+el('btn-ver-como').addEventListener('click', function () { entrarComo(el('ver-como').value); });
+el('btn-volver-admin').addEventListener('click', function () {
+  guardarComo('');
+  mostrar('cargando');
+  cargarContexto();
+});
+
 el('btn-salir').addEventListener('click', function () {
+  guardarComo('');
+  tableroCargado = false;
   guardarBoleto(null);
   mostrarAcceso('');
 });

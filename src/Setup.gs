@@ -611,3 +611,30 @@ function renombrarDestino(destinoId, nombre) {
   invalidarCatalogo(HOJAS.DESTINOS);
   return destinoId + ': "' + antes + '" → "' + fila.nombre + '"';
 }
+
+// Para `clasp run`: crea la cuenta de administración (tablero y "ver como"),
+// o le cambia la contraseña si ya existe. La contraseña llega como parámetro
+// y nunca se escribe en el repo (es público). No toca ninguna otra cuenta.
+function crearCuentaAdmin(usuario, contrasena, nombre) {
+  usuario = String(usuario || '').trim().toLowerCase();
+  if (!/^[a-z0-9]{4,30}$/.test(usuario)) throw new Error('Usuario inválido: solo letras y números.');
+  if (String(contrasena || '').length < 6) throw new Error('La contraseña necesita al menos 6 caracteres.');
+  var filas = leerTabla(HOJAS.USUARIOS);
+  var fila = _buscarUsuario(filas, usuario);
+  if (fila && !esAdmin(fila)) throw new Error('"' + usuario + '" ya es una cuenta que no es de admin.');
+  var sal = generarSal();
+  if (fila) {
+    fila.sal = sal;
+    fila.huella = huellaContrasena(sal, contrasena);
+    fila.activo = 'TRUE';
+    reemplazarFilas(HOJAS.USUARIOS, filas);
+  } else {
+    escribirFilas(HOJAS.USUARIOS, [{ usuario: usuario, nombre: nombre || 'JURISDICCIÓN SANITARIA XIX TEXCOCO',
+      rol: ROLES.ADMIN, coordinacion_id: COORDINACION_ADMIN, sal: sal,
+      huella: huellaContrasena(sal, contrasena), activo: 'TRUE', unidad_id: '', alias: '' }]);
+  }
+  invalidarCatalogo(HOJAS.USUARIOS);
+  registrarEvento(Session.getEffectiveUser().getEmail() || 'editor', 'RESTABLECER_CONTRASENA',
+                  'admin ' + usuario + (fila ? ' (contraseña cambiada)' : ' (creada)'));
+  return usuario + (fila ? ': contraseña cambiada' : ': cuenta de admin creada');
+}

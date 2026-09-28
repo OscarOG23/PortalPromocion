@@ -132,7 +132,8 @@ function advertenciasDeDestino(d) {
       return;
     }
     var rol = entrada.slice(PREFIJO_ROL.length);
-    if (!Object.prototype.hasOwnProperty.call(ROLES, rol) || rol === ROLES.COORDINACION) {
+    if (!Object.prototype.hasOwnProperty.call(ROLES, rol) || rol === ROLES.COORDINACION ||
+        rol === ROLES.ADMIN) {
       a.push('rol desconocido en aplica_a: "' + s + '"');
     }
   });
@@ -279,35 +280,42 @@ var CACHE_SONDA_SEG = 600;
 // conteste claro queda NO_SE_SABE. Cualquier falla general: todos gris.
 // cuenta: ver "Boletos por cuenta".
 function consultarSondasNativas_(destinos, cuenta, anio, mes, secreto) {
-  var estados = {};
-  var nativos = destinos.filter(function (d) {
-    return String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA && !problemasDeDestino(d).length;
-  });
-  if (!nativos.length) return estados;
+  return consultarSondasDeCuentas_([{ cuenta: cuenta, destinos: destinos }], anio, mes, secreto)[0];
+}
+
+// Lo mismo para varias cuentas a la vez (el tablero del admin): todas las
+// sondas que no están en caché salen en UN solo fetchAll. Devuelve un mapa
+// { destino_id: estado } por cada par, en el mismo orden.
+function consultarSondasDeCuentas_(pares, anio, mes, secreto) {
+  var resultados = pares.map(function () { return {}; });
   try {
     var cache = CacheService.getScriptCache();
     var vence = Date.now() + VIDA_BOLETO_SONDA_MIN * 60000;
     var pendientes = [];
-    nativos.forEach(function (d) {
-      var id = String(d.destino_id).trim();
-      var clave = claveDeSonda(id, cuenta, anio, mes);
-      var guardado = cache.get(clave);
-      if (guardado) { estados[id] = guardado; return; }
-      var boleto = boletoDeSonda(cuenta, id, vence, secreto);
-      pendientes.push({ id: id, clave: clave, url: urlDeSonda(d, boleto, anio, mes) });
+    pares.forEach(function (par, k) {
+      par.destinos.filter(function (d) {
+        return String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA && !problemasDeDestino(d).length;
+      }).forEach(function (d) {
+        var id = String(d.destino_id).trim();
+        var clave = claveDeSonda(id, par.cuenta, anio, mes);
+        var guardado = cache.get(clave);
+        if (guardado) { resultados[k][id] = guardado; return; }
+        var boleto = boletoDeSonda(par.cuenta, id, vence, secreto);
+        pendientes.push({ k: k, id: id, clave: clave, url: urlDeSonda(d, boleto, anio, mes) });
+      });
     });
-    if (!pendientes.length) return estados;
+    if (!pendientes.length) return resultados;
     var respuestas = UrlFetchApp.fetchAll(pendientes.map(function (p) {
       return { url: p.url, muteHttpExceptions: true, followRedirects: true };
     }));
     respuestas.forEach(function (resp, i) {
       var r = interpretarRespuestaSonda(resp.getResponseCode(), resp.getContentText());
       var estado = estadoDeSonda(r);
-      estados[pendientes[i].id] = estado;
+      resultados[pendientes[i].k][pendientes[i].id] = estado;
       if (estado !== ESTADOS.NO_SE_SABE) cache.put(pendientes[i].clave, estado, CACHE_SONDA_SEG);
     });
   } catch (e) {
     console.error(e);
   }
-  return estados;
+  return resultados;
 }

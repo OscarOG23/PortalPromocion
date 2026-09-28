@@ -861,6 +861,58 @@ function registrarPruebas() {
     assertIgual(_claveIntentos(_buscarUsuario(filas, 'PELA80').usuario), _claveIntentos('aperezl'));
   });
 
+  // --- Administración (2026-09-28) -----------------------------------------
+
+  var USUARIOS_ADMIN = [
+    { usuario: 'jstexcoco', nombre: 'JURISDICCIÓN', rol: 'ADMIN', coordinacion_id: 'JUR19', activo: 'TRUE' },
+    { usuario: 'texcoco', nombre: 'TEXCOCO', rol: 'COORDINACION', coordinacion_id: 'COOR11', activo: 'TRUE' },
+    { usuario: 'chiautla', nombre: 'CHIAUTLA', rol: '', coordinacion_id: 'COOR01', activo: 'TRUE' },
+    { usuario: 'baja', nombre: 'BAJA', rol: 'COORDINACION', coordinacion_id: 'COOR02', activo: 'FALSE' },
+    { usuario: 'aperezl', nombre: 'ANA PÉREZ', rol: 'NUTRICION', coordinacion_id: 'COOR20',
+      unidad_id: 'U065', activo: 'TRUE' }
+  ];
+
+  prueba('admin: cuenta válida que no ve destinos propios', function () {
+    assertIgual(cuentaConRolValido(USUARIOS_ADMIN[0]), true);
+    assertIgual(esAdmin(USUARIOS_ADMIN[0]), true);
+    assertIgual(esAdmin(USUARIOS_ADMIN[1]), false);
+    var destinos = [{ destino_id: 'a', aplica_a: 'TODAS', activo: 'TRUE' },
+                    { destino_id: 'b', aplica_a: 'ROL:NUTRICION', activo: 'TRUE' }];
+    assertIgual(destinosDeCuenta(destinos, USUARIOS_ADMIN[0]), []);
+  });
+
+  prueba('admin: ver como lista coordinaciones y personas activas, sin admin', function () {
+    var o = opcionesVerComo(USUARIOS_ADMIN, UNIDADES_PRUEBA);
+    assertIgual(o.coordinaciones.map(function (c) { return c.usuario; }), ['chiautla', 'texcoco']);
+    assertIgual(o.personas.map(function (p) { return [p.usuario, p.rol]; }), [['aperezl', 'NUTRICION']]);
+    assertIgual(o.personas[0].unidad, 'CEAPS ACUITLAPILCO');
+  });
+
+  prueba('admin: ver como solo lo pide un admin y solo hacia cuentas activas', function () {
+    assertIgual(cuentaParaVerComo(USUARIOS_ADMIN, USUARIOS_ADMIN[0], 'TEXCOCO').ok, true);
+    assertIgual(cuentaParaVerComo(USUARIOS_ADMIN, USUARIOS_ADMIN[0], 'aperezl').fila.rol, 'NUTRICION');
+    assertIgual(cuentaParaVerComo(USUARIOS_ADMIN, USUARIOS_ADMIN[1], 'chiautla').code, 'NO_AUTORIZADO');
+    assertIgual(cuentaParaVerComo(USUARIOS_ADMIN, USUARIOS_ADMIN[0], 'baja').code, 'CUENTA_NO_DISPONIBLE');
+    assertIgual(cuentaParaVerComo(USUARIOS_ADMIN, USUARIOS_ADMIN[0], 'jstexcoco').code, 'CUENTA_NO_DISPONIBLE');
+    assertIgual(cuentaParaVerComo(USUARIOS_ADMIN, USUARIOS_ADMIN[0], 'nadie').code, 'CUENTA_NO_DISPONIBLE');
+  });
+
+  prueba('admin: tablero con columnas en orden y conteo por coordinación', function () {
+    var t = armarTablero([
+      { usuario: 'chiautla', nombre: 'CHIAUTLA', destinos: [
+        { destino_id: 'mensual', nombre: 'Mensual', orden: 2 }, { destino_id: 'sips', nombre: 'SIPS', orden: 1 }],
+        estados: { mensual: 'REPORTADO', sips: 'PENDIENTE' } },
+      { usuario: 'texcoco', nombre: 'TEXCOCO', destinos: [{ destino_id: 'mensual', nombre: 'Mensual', orden: 2 }],
+        estados: { mensual: 'REPORTADO' } }
+    ]);
+    assertIgual(t.columnas.map(function (c) { return c.destino_id; }), ['sips', 'mensual']);
+    assertIgual(t.filas[0].estados, { sips: 'PENDIENTE', mensual: 'REPORTADO' });
+    assertIgual([t.filas[0].reportados, t.filas[0].total], [1, 2]);
+    // un destino que no le aplica no aparece en su fila (no es "pendiente")
+    assertIgual(t.filas[1].estados, { mensual: 'REPORTADO' });
+    assertIgual([t.filas[1].reportados, t.filas[1].total], [1, 1]);
+  });
+
   // --- La máscara con cuentas de persona (fase 7) --------------------------
 
   var CUENTA_COORD = { usuario: 'chiautla', nombre: 'CHIAUTLA', coordinacion_id: 'COOR01',

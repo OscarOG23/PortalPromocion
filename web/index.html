@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#9F2241">
   <meta name="color-scheme" content="light dark">
   <title>Promoción de la Salud · JS XIX Texcoco</title>
-  <link rel="stylesheet" href="estilos.css?v=20260924c">
+  <link rel="stylesheet" href="estilos.css?v=20260928a">
 </head>
 <body>
   <!-- Íconos: un solo trazo de 1.75 px, estilo lineal. Se usan con <use>. -->
@@ -85,6 +85,35 @@
         <p id="periodo" class="pastilla" hidden></p>
       </header>
 
+      <!-- Admin viendo como otra cuenta: se dice siempre y se puede volver. -->
+      <div id="banda-como" class="banda-como" role="status" hidden>
+        <span id="banda-como-texto"></span>
+        <button type="button" id="btn-volver-admin" class="btn-enlace">Volver a administración</button>
+      </div>
+
+      <!-- Administración: tablero de la jurisdicción y "ver como". -->
+      <section id="admin" class="admin" hidden aria-label="Administración">
+        <div class="admin-pestanas" role="tablist">
+          <button type="button" role="tab" id="tab-tablero" aria-selected="true" aria-controls="panel-tablero">Tablero</button>
+          <button type="button" role="tab" id="tab-como" aria-selected="false" aria-controls="panel-como">Ver como</button>
+        </div>
+        <div id="panel-tablero" role="tabpanel" aria-labelledby="tab-tablero">
+          <p id="tablero-nota" class="resumen-nota" aria-live="polite"></p>
+          <div class="tablero-caja"><table id="tablero" class="tablero"></table></div>
+          <button type="button" id="btn-tablero" class="btn-secundario">Actualizar tablero</button>
+        </div>
+        <div id="panel-como" role="tabpanel" aria-labelledby="tab-como" hidden>
+          <div class="campo">
+            <label for="ver-como">Coordinación o persona</label>
+            <select id="ver-como"></select>
+          </div>
+          <button type="button" id="btn-ver-como" class="btn-principal">
+            <span class="giro" aria-hidden="true"></span><span class="btn-texto">Entrar como esta cuenta</span>
+          </button>
+          <p class="resumen-nota">Verá su portal y sus capturadores se abrirán como esa cuenta. Queda registrado.</p>
+        </div>
+      </section>
+
       <section id="resumen" class="resumen" aria-live="polite" hidden>
         <div class="resumen-texto">
           <p class="resumen-cifra"><strong id="resumen-hechos">0</strong> de <span id="resumen-total">0</span> reportados</p>
@@ -115,7 +144,7 @@
     </div>
   </main>
 
-  <script src="config.js?v=20260924c"></script>
-  <script src="app.js?v=20260924c"></script>
+  <script src="config.js?v=20260928a"></script>
+  <script src="app.js?v=20260928a"></script>
 </body>
 </html>

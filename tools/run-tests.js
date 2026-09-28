@@ -17,6 +17,7 @@ const PUROS = [
   'Auditoria.gs',
   'Acceso.gs',
   'Destinos.gs',
+  'Admin.gs',
   'Setup.gs',
   'Api.gs',
   'Catalogos.generado.gs',

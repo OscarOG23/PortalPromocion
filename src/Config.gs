@@ -17,7 +17,9 @@ var ROLES = {
   COORDINACION: 'COORDINACION',
   NUTRICION: 'NUTRICION',
   PSICOLOGIA: 'PSICOLOGIA',
-  PROMOTOR: 'PROMOTOR'
+  PROMOTOR: 'PROMOTOR',
+  // La jurisdicción: tablero y "ver como" (Admin.gs). Sin capturadores propios.
+  ADMIN: 'ADMIN'
 };
 
 // Rol vacío = coordinación: las cuentas creadas antes de la fase 7 no lo
