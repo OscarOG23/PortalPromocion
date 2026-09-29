@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- La dirección llega con el boleto: que no se filtre en el Referer. -->
+  <meta name="referrer" content="no-referrer">
+  <!-- style-src 'unsafe-inline': la pantalla pone algunos style="" sueltos; los scripts siguen solo de 'self'.
+       img-src blob: para leer las fotos antes de reducirlas. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <meta name="theme-color" content="#9F2241">
+  <meta name="color-scheme" content="light dark">
+  <title>Actividad Física — Promoción de la Salud</title>
+  <link rel="stylesheet" href="estilos.css?v=20260929a">
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-pulso" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+    <symbol id="i-listo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-guion" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></symbol>
+    <symbol id="i-aviso" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-candado" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-derecha" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-izquierda" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-camara" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+    <symbol id="i-imagen" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+    <symbol id="i-bandera" viewBox="0 0 24 24"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.33 2q2 0 3.87-.93a.5.5 0 0 1 .8.4V15a1 1 0 0 1-.4.8A6 6 0 0 1 16 17c-3 0-5-2-8-2a6 6 0 0 0-4 1.53"/></symbol>
+  </svg>
+
+  <main>
+    <!-- Carga ------------------------------------------------------------- -->
+    <div id="cargando" class="vista" role="status" aria-label="Cargando">
+      <div class="esq" style="height:180px;margin:0 -16px;border-radius:0 0 28px 28px"></div>
+      <div class="esq"></div><div class="esq"></div><div class="esq"></div>
+    </div>
+
+    <!-- Entrada (sin boleto, sesión vencida, sin conexión) ---------------- -->
+    <section id="entrada" class="vista vista-entrada" hidden aria-labelledby="titulo-entrada">
+      <div class="marca">
+        <span class="marca-icono"><svg><use href="#i-pulso"/></svg></span>
+        <span>ISEM · Jurisdicción Sanitaria XIX Texcoco</span>
+      </div>
+      <div class="tarjeta-entrada">
+        <h1 id="titulo-entrada">Actividad Física</h1>
+        <p id="entrada-msg" role="alert"></p>
+        <button id="btn-reintentar-entrada" class="btn-principal" type="button" hidden>Intentar de nuevo</button>
+      </div>
+      <p class="pie">Instituto de Salud del Estado de México</p>
+    </section>
+
+    <!-- Lista de unidades -------------------------------------------------- -->
+    <section id="vista-lista" class="vista" hidden aria-labelledby="coordinacion">
+      <header class="cabecera">
+        <span class="cabecera-marca"><svg aria-hidden="true"><use href="#i-pulso"/></svg>Actividad Física · Promoción de la Salud</span>
+        <p class="cabecera-sobre">Coordinación</p>
+        <h1 id="coordinacion" tabindex="-1"></h1>
+        <div class="selector-mes">
+          <label for="mes">Mes que reporta</label>
+          <select id="mes"></select>
+        </div>
+      </header>
+
+      <div id="resumen" class="resumen" aria-live="polite" hidden></div>
+      <p id="aviso-cerrado" class="aviso" role="status" hidden>
+        <svg aria-hidden="true"><use href="#i-candado"/></svg>
+        <span>Este mes ya se terminó: solo puede consultarlo. Si necesita corregir algo, pida a la jurisdicción que lo reabra.</span>
+      </p>
+      <p id="error-lista" class="error" role="alert"></p>
+      <button id="btn-reintentar-lista" class="btn-secundario" type="button" hidden style="margin-top:12px">Intentar de nuevo</button>
+
+      <div class="apartado" id="apartado-unidades">
+        <h2 id="titulo-unidades">Unidades</h2>
+        <div id="lista-carga" hidden><div class="esq"></div><div class="esq"></div><div class="esq"></div></div>
+        <ul id="lista" class="unidades" aria-labelledby="titulo-unidades"></ul>
+      </div>
+
+      <div id="cierre" class="cierre" hidden>
+        <button id="btn-terminar" class="btn-secundario" type="button" aria-busy="false">
+          <span class="giro oscuro" hidden aria-hidden="true"></span>
+          <svg aria-hidden="true"><use href="#i-bandera"/></svg><span>Terminar el mes</span>
+        </button>
+        <p>Cuando termine, el mes queda cerrado y ya no se puede cambiar.</p>
+        <p id="error-terminar" class="error" role="alert"></p>
+      </div>
+
+      <p class="pie">Instituto de Salud del Estado de México · Jurisdicción Sanitaria XIX Texcoco</p>
+    </section>
+
+    <!-- Hoja de una unidad ------------------------------------------------- -->
+    <section id="vista-unidad" class="vista" hidden aria-labelledby="unidad-nombre">
+      <div class="barra-superior">
+        <button id="btn-volver" class="btn-volver" type="button">
+          <svg aria-hidden="true"><use href="#i-izquierda"/></svg><span>Unidades</span>
+        </button>
+      </div>
+
+      <div class="titulo-unidad">
+        <h2 id="unidad-nombre" tabindex="-1"></h2>
+        <p id="unidad-mes"></p>
+      </div>
+      <p id="aviso-cerrado-unidad" class="aviso" hidden>
+        <svg aria-hidden="true"><use href="#i-candado"/></svg><span>Mes terminado: solo lectura.</span>
+      </p>
+
+      <form id="form-unidad" novalidate>
+        <div id="grupos" class="grupos"></div>
+        <p id="error-unidad" class="error" role="alert"></p>
+        <div id="resultado" role="status" aria-live="polite"></div>
+        <div id="acciones-guardar" class="acciones-guardar">
+          <button id="btn-guardar" class="btn-principal" type="submit" aria-busy="false">
+            <span class="giro" aria-hidden="true"></span><span>Guardar</span>
+          </button>
+        </div>
+      </form>
+
+      <div class="apartado" aria-labelledby="titulo-fotos">
+        <h2 id="titulo-fotos">Fotos (hasta 3)</h2>
+        <ul id="fotos" class="fotos"></ul>
+        <input id="archivo" type="file" accept="image/*" multiple class="solo-lector" tabindex="-1" aria-hidden="true">
+        <button id="btn-foto" class="btn-secundario" type="button" style="margin-top:10px">
+          <svg aria-hidden="true"><use href="#i-camara"/></svg><span>Agregar foto</span>
+        </button>
+        <p id="nota-fotos" class="nota"></p>
+      </div>
+
+      <div class="acciones">
+        <button id="btn-listo" class="btn-secundario" type="button" hidden>Listo, volver a la lista</button>
+        <button id="btn-borrar" class="btn-peligro" type="button" hidden>Borrar la captura de esta unidad</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="config.js?v=20260929a"></script>
+  <script src="app.js?v=20260929a"></script>
+</body>
+</html>
