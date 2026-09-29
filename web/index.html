@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#9F2241">
   <meta name="color-scheme" content="light dark">
   <title>Promoción de la Salud · JS XIX Texcoco</title>
-  <link rel="stylesheet" href="estilos.css?v=20260928b">
+  <link rel="stylesheet" href="estilos.css?v=20260929a">
 </head>
 <body>
   <!-- Íconos: un solo trazo de 1.75 px, estilo lineal. Se usan con <use>. -->
@@ -48,7 +48,8 @@
           <div class="campo">
             <label for="usuario">Usuario</label>
             <input id="usuario" autocomplete="username" autocapitalize="none" autocorrect="off"
-                   spellcheck="false" enterkeyhint="next" required>
+                   spellcheck="false" enterkeyhint="next" required aria-describedby="ayuda-usuario">
+            <p id="ayuda-usuario" class="ayuda-campo">Coordinación: su nombre todo junto (ceapschiautla). Personal: 4 letras de su CURP y año (GAGO99).</p>
           </div>
           <div class="campo">
             <label for="contrasena">Contraseña</label>
@@ -66,6 +67,24 @@
             <span class="btn-texto">Entrar</span>
           </button>
         </form>
+
+        <details id="como-entro" class="como-entro">
+          <summary>¿Cómo entro?</summary>
+          <div class="como-bloque">
+            <h2>Coordinaciones (CEAPS, unidades, UNEME)</h2>
+            <p><strong>Usuario:</strong> el nombre de su coordinación, todo junto, sin espacios ni acentos y en minúsculas.
+              Ej.: CEAPS Chiautla → <code>ceapschiautla</code>; Texcoco Cabecera → <code>texcococabecera</code>.</p>
+            <p><strong>Contraseña:</strong> su usuario seguido de <code>26</code>. Ej.: <code>ceapschiautla26</code>.</p>
+          </div>
+          <div class="como-bloque">
+            <h2>Personal (nutrición, psicología y promotores)</h2>
+            <p><strong>Usuario:</strong> las 4 primeras letras de su CURP y los 2 últimos dígitos de su año de nacimiento
+              (mayúsculas o minúsculas, da igual). Ej.: <code>GAGO99</code>. Si dos personas coinciden, el segundo lleva una letra al final (<code>GAGO99b</code>).</p>
+            <p><strong>Contraseña:</strong> su fecha de nacimiento como <strong>ddmmaaaa</strong>, sin diagonales.
+              Ej.: nació el 5 de marzo de 1999 → <code>05031999</code>.</p>
+          </div>
+          <p class="como-nota">Con 5 intentos fallidos la cuenta espera 15 minutos. Si no puede entrar, avise a Promoción de la Salud de la Jurisdicción.</p>
+        </details>
       </div>
 
       <p class="pie">Instituto de Salud del Estado de México</p>
@@ -144,7 +163,7 @@
     </div>
   </main>
 
-  <script src="config.js?v=20260928b"></script>
-  <script src="app.js?v=20260928b"></script>
+  <script src="config.js?v=20260929a"></script>
+  <script src="app.js?v=20260929a"></script>
 </body>
 </html>

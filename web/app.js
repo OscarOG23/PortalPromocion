@@ -547,6 +547,7 @@ el('form-acceso').addEventListener('submit', function (ev) {
       ocupado(boton, false);
       if (!r.ok) {
         el('error-acceso').textContent = r.message || 'Algo salió mal. Intente de nuevo.';
+        if (r.code === 'CREDENCIALES_INVALIDAS') el('como-entro').open = true;
         sacudir(el('tarjeta-acceso'));
         return;
       }
