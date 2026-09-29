@@ -499,9 +499,12 @@ var DESTINOS_CONOCIDOS = [
     clase: 'HERMANO_SIN_CONTRASENA',
     url: 'https://script.google.com/macros/s/AKfycbxiwICPr2ZpBUtKgFudTdLhzctrGnuQmSRZlIuSYd-t-oSJTQU74fi7yjsV4fMlkyqL/exec',
     aplica_a: 'TODAS', param_identidad: 'coordinacion', valor_identidad: 'NOMBRE', sonda: 'NATIVA', orden: 3, activo: 'TRUE' },
+  // La pantalla vive en GitHub Pages (web/actividad-fisica/): la de script.google.com
+  // falla en Android Chrome con varias cuentas. La sonda sigue en el /exec.
   { destino_id: 'actividad_fisica', nombre: 'Reporte de Actividad Física', apartado: 'Reporte mensual',
     clase: 'HERMANO_CON_CONTRASENA',
-    url: 'https://script.google.com/macros/s/AKfycby-mX_9mqg4rBXYb9uPj9bJHuVao8D2JCByOpqkup9Q2_lvMOpnLT7GTvKgekSEAs6I/exec',
+    url: 'https://oscarog23.github.io/PortalPromocion/actividad-fisica/',
+    url_sonda: 'https://script.google.com/macros/s/AKfycby-mX_9mqg4rBXYb9uPj9bJHuVao8D2JCByOpqkup9Q2_lvMOpnLT7GTvKgekSEAs6I/exec',
     aplica_a: 'TODAS', param_identidad: '', valor_identidad: '', sonda: 'NATIVA', orden: 4, activo: 'TRUE' },
   // Solo para cuentas de persona: nutriólogos y psicólogos. La pantalla vive
   // en GitHub Pages (web/atencion/); la sonda sigue en el /exec de Apps Script.
