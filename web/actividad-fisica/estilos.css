@@ -199,11 +199,8 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1
   display: grid; place-items: center;
   width: 36px; height: 36px; border-radius: 10px;
   color: #fff; font-size: 20px;
-  background: #fff;
-  border: 1px solid rgba(159, 34, 65, 0.18);
-  box-shadow: 0 6px 16px rgba(159, 34, 65, 0.22);
 }
-.marca-icono img { width: 26px; height: auto; display: block; }
+.marca-icono img { width: 30px; height: auto; display: block; }
 .tarjeta-entrada {
   background: var(--superficie);
   border-radius: var(--r-xl);
@@ -267,7 +264,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1
   margin-bottom: 14px;
   font-size: 13px; font-weight: 600; opacity: 0.9;
 }
-.cabecera-logo { width: 22px; height: auto; padding: 3px; background: #fff; border-radius: 7px; box-sizing: content-box; }
+.cabecera-logo { width: 22px; height: auto; }
 .cabecera-sobre {
   position: relative;
   font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.72;
