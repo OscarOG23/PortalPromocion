@@ -9,9 +9,10 @@
        img-src blob: para leer las fotos antes de reducirlas. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
   <meta name="theme-color" content="#9F2241">
+  <link rel="icon" type="image/png" href="logo-promocion.png">
   <meta name="color-scheme" content="light dark">
   <title>Atención — Nutrición y Psicología</title>
-  <link rel="stylesheet" href="estilos.css?v=20260924a">
+  <link rel="stylesheet" href="estilos.css?v=20260929b">
 </head>
 <body>
   <svg class="sprite" aria-hidden="true" focusable="false">
@@ -39,7 +40,7 @@
     <!-- Entrada (sin boleto, sesión vencida, sin conexión) ---------------- -->
     <section id="entrada" class="vista vista-entrada" hidden aria-labelledby="titulo-entrada">
       <div class="marca">
-        <span class="marca-icono"><svg><use href="#i-pulso"/></svg></span>
+        <span class="marca-icono"><img src="logo-promocion.png" alt="" width="26" height="29"></span>
         <span>ISEM · Jurisdicción Sanitaria XIX Texcoco</span>
       </div>
       <div class="tarjeta-entrada">
@@ -53,7 +54,7 @@
     <!-- Informe del mes ---------------------------------------------------- -->
     <section id="vista-informe" class="vista" hidden aria-labelledby="persona">
       <header class="cabecera">
-        <span class="cabecera-marca"><svg aria-hidden="true"><use href="#i-pulso"/></svg>Informe mensual de Atención</span>
+        <span class="cabecera-marca"><img class="cabecera-logo" src="logo-promocion.png" alt="" width="22" height="24">Informe mensual de Atención</span>
         <h1 id="persona" tabindex="-1"></h1>
         <p id="disciplina" class="cabecera-sobre"></p>
         <div class="selector-mes">

@@ -364,6 +364,8 @@ body.jornada-ui{
   background:radial-gradient(circle at 95% 0,rgba(201,162,75,.22),transparent 45%),linear-gradient(125deg,#4a1223,#691b32 65%,#8b2547);
 }
 .jornada-ui header .marca{font-size:12px;font-weight:700;letter-spacing:.15em;color:#e7d2a0;opacity:1;margin-bottom:12px}
+.jornada-ui header .marca{display:flex;align-items:center;gap:10px}
+.jornada-ui header .marca-logo{width:28px;height:auto;padding:4px;background:#fff;border-radius:8px;box-sizing:content-box}
 .jornada-ui header h1{font:600 clamp(27px,4vw,34px)/1.15 Georgia,serif;letter-spacing:-.025em;margin-bottom:10px}
 .jornada-ui header p{font-size:14px;opacity:1;color:#f3e9e6}
 .jornada-ui header .sub{opacity:1;color:#e7d2a0;margin-top:8px}
