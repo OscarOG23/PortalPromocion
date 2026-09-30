@@ -427,3 +427,9 @@ body.jornada-ui{
   .jornada-ui .card h2{font-size:22px}
   .jornada-ui .fotos{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* Complemento escolar: los controles se apilan en teléfonos estrechos. */
+#escolar .fila-btn{flex-wrap:wrap}
+#escolar .fila-btn button{flex:1 1 150px;min-width:0}
+#escolarRegistros{display:grid;gap:8px}
+#escolarRegistros button{text-align:left}

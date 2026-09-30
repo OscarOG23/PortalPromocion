@@ -449,7 +449,6 @@ function renglon(d, i) {
   if (tieneEnlace) {
     caja = nodo('a', 'tarjeta');
     caja.href = d.enlace;
-    caja.target = '_blank';
     caja.rel = 'noopener noreferrer';
   } else {
     caja = nodo('div', 'tarjeta sin-enlace');
@@ -462,7 +461,6 @@ function renglon(d, i) {
 
   var cuerpo = nodo('span', 'cuerpo');
   var nombre = nodo('span', 'nombre', d.nombre + (tieneEnlace ? '' : ' — No disponible'));
-  if (tieneEnlace) nombre.appendChild(nodo('span', 'solo-lector', ' (abre en otra pestaña)'));
 
   var codigo = codigoDeEstado(d);
   var estado = nodo('span', 'estado estado-' + codigo);
