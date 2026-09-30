@@ -1,6 +1,10 @@
 # Worktrees locales
 .worktrees/
 
+# Caché de los adaptadores locales
+__pycache__/
+*.pyc
+
 # clasp: el scriptId y las credenciales no se versionan
 .clasp.json
 .clasprc.json

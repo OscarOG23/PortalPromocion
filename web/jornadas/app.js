@@ -14,7 +14,8 @@
    ============================================================ */
 
 var ACCIONES_PUENTE = ["entrarConBoleto", "datosArranque", "guardarCierre",
-  "guardarJornadaCompleta", "leerPreferencias", "guardarPreferencias"];
+  "guardarJornadaCompleta", "leerPreferencias", "guardarPreferencias",
+  "leerEscolar", "guardarEscolar", "exportarPreventivo"];
 var CLAVE_BOLETO_PUENTE = "jornadas:boleto";
 var ESPERA_PUENTE_MS = 45000;
 var ESPERA_SUBIDA_PUENTE_MS = 180000; // un cierre de jornada lleva fotos
@@ -38,7 +39,7 @@ function modoDeBusqueda_(busqueda){
 
 /** Los guardados llevan el boleto; sólo si no traen ya uno (la cola conserva el suyo). */
 function conBoleto_(accion, args, boleto){
-  if (!boleto || (accion !== "guardarCierre" && accion !== "guardarJornadaCompleta")) return args;
+  if (!boleto || ["guardarCierre", "guardarJornadaCompleta", "leerEscolar", "guardarEscolar", "exportarPreventivo"].indexOf(accion)<0) return args;
   var p = args[0];
   if (p && typeof p === "object" && !p.boleto) p.boleto = boleto;
   return args;
@@ -1114,6 +1115,119 @@ function foliosFichasDelMes(jornadas, clave){
   return (jornadas || []).filter(function(j){
     return String(j.mes || "").trim() === k && sinAcentosFicha_(j.estatus).trim() === "COMPLETA";
   }).map(function(j){ return j.folio; });
+}
+
+
+var ETIQUETAS_ESCOLAR = {ADICCIONES:'Adicciones',VIOLENCIA:'Violencia',HABILIDADES_PARA_LA_VIDA:'Habilidades para la vida',BULLYING:'Bullying',BEBES_VIRTUALES:'Bebés virtuales',OTROS:'Otros'};
+var escolarEstado = {unidades:[],registros:[],planteles:[],version:'',ocupado:false,consulta:0,contexto:null};
+function escolarMensaje(texto) { document.getElementById('escolarMensaje').textContent = texto; }
+function escolarContexto() { return {unidadId:document.getElementById('escolarUnidad').value,periodo:document.getElementById('escolarPeriodo').value}; }
+function escolarMismoContexto(a,b) { return a && b && a.unidadId===b.unidadId && a.periodo===b.periodo; }
+function abrirEscolar() {
+  document.getElementById('escolar').classList.remove('oculto');
+  Array.prototype.forEach.call(document.querySelectorAll('.progreso,.barra,#p1,#p2,#p3,#p4,#contexto'),function(n) { n.classList.add('oculto'); });
+  if (!document.getElementById('escolarPeriodo').value) document.getElementById('escolarPeriodo').value = new Date().toISOString().slice(0,7);
+  if (!escolarEstado.unidades.length) {
+    escolarMensaje('Cargando las unidades de su coordinación…');
+    google.script.run.withSuccessHandler(function(b) {
+      escolarEstado.unidades = b.unidades || [];
+      var s=document.getElementById('escolarUnidad');s.textContent='';
+      escolarEstado.unidades.forEach(function(u) {var o=document.createElement('option');o.value=u.id;o.textContent=u.nombre;s.appendChild(o);});
+      consultarEscolar();
+    }).withFailureHandler(function(e) { escolarMensaje(e.message); }).leerEscolar({periodo:document.getElementById('escolarPeriodo').value});
+  } else consultarEscolar();
+}
+window.addEventListener('beforeunload', function(e) {
+  if (escolarEstado.ocupado || escolarEstado.sucio) {e.preventDefault();e.returnValue='';}
+});
+function consultarEscolar() {
+  if (escolarEstado.ocupado) return;
+  var p=escolarContexto(), intento=++escolarEstado.consulta;
+  escolarMensaje('Consultando planteles…');
+  google.script.run.withSuccessHandler(function(r) {
+    if (intento!==escolarEstado.consulta || !escolarMismoContexto(p,escolarContexto())) return;
+    escolarEstado.contexto=p; escolarEstado.registros=r.registros;escolarEstado.planteles=r.planteles;
+    pintarRegistrosEscolar(); nuevoEscolar();
+    escolarMensaje(r.registros.length+' planteles/turnos registrados para este mes.');
+  }).withFailureHandler(function(e) { if (intento===escolarEstado.consulta) escolarMensaje(e.message); }).leerEscolar(p);
+}
+function pintarRegistrosEscolar() {
+  var caja=document.getElementById('escolarRegistros');caja.textContent='';
+  escolarEstado.registros.forEach(function(r) {
+    var b=document.createElement('button');b.className='b-sec';b.type='button';
+    b.textContent=r.nombre+' · '+r.turno+' · '+r.estatus;
+    b.onclick=function() { cargarRegistroEscolar(r); };caja.appendChild(b);
+  });
+  var s=document.getElementById('escolarConocido');s.textContent='';
+  var base=document.createElement('option');base.value='';base.textContent='Plantel nuevo…';s.appendChild(base);
+  escolarEstado.planteles.forEach(function(r,i) {var o=document.createElement('option');o.value=String(i);o.textContent=r.nombre+' · '+r.turno+' · '+r.ciclo;s.appendChild(o);});
+}
+function nuevoEscolar() {
+  escolarEstado.sucio=false;
+  if (escolarEstado.ocupado) return;
+  document.getElementById('escolarFormulario').reset();escolarEstado.version='';
+  escolarEstado.claveOriginal='';
+  var anio=Number(document.getElementById('escolarPeriodo').value.slice(0,4)),mes=Number(document.getElementById('escolarPeriodo').value.slice(5));
+  if (mes<8) anio--;document.getElementById('escolarCiclo').value=anio+'-'+(anio+1);
+  escolarTotal();
+}
+function cargarRegistroEscolar(r) {
+  if (escolarEstado.ocupado) return;
+  nuevoEscolar();
+  var campos={CCT:'cct',Nombre:'nombre',Turno:'turno',Ciclo:'ciclo',Matricula:'matricula',Programadas:'programadas',Realizadas:'realizadas',Alumnos:'alumnos',Docentes:'docentes',Padres:'padres',Tamizajes:'tamizajes',Otros:'otrosTema',Folio:'folioJornada'};
+  Object.keys(campos).forEach(function(k) {document.getElementById('escolar'+k).value=r[campos[k]]===null||r[campos[k]]===undefined?'':r[campos[k]];});
+  Object.keys(ETIQUETAS_ESCOLAR).forEach(function(k) {var n=(r.temas||{})[k];document.getElementById('temaEscolar'+k).value=n===null||n===undefined?'':n;});
+  escolarEstado.version=r.actualizado||'';escolarEstado.claveOriginal=r.clave||'';escolarTotal();
+}
+function escolarTotal() {
+  var v=['Alumnos','Docentes','Padres'].map(function(k) {return document.getElementById('escolar'+k).value;});
+  document.getElementById('escolarAsistencias').textContent=v.some(function(x) {return x==='';})?'Asistencias: pendiente de completar.':'Total de asistencias: '+v.reduce(function(t,x) {return t+Number(x);},0);
+}
+function paqueteEscolar(estatus) {
+  var p=escolarContexto();p.estatus=estatus;p.version=escolarEstado.version;
+  p.claveOriginal=escolarEstado.claveOriginal||'';
+  var campos={CCT:'cct',Nombre:'nombre',Turno:'turno',Ciclo:'ciclo',Matricula:'matricula',Programadas:'programadas',Realizadas:'realizadas',Alumnos:'alumnos',Docentes:'docentes',Padres:'padres',Tamizajes:'tamizajes',Otros:'otrosTema',Folio:'folioJornada'};
+  Object.keys(campos).forEach(function(k) {p[campos[k]]=document.getElementById('escolar'+k).value;});
+  p.temas={};Object.keys(ETIQUETAS_ESCOLAR).forEach(function(k) {var v=document.getElementById('temaEscolar'+k).value;p.temas[k]=v===''?null:Number(v);});return p;
+}
+function bloquearEscolar(si) {
+  escolarEstado.ocupado=si;
+  Array.prototype.forEach.call(document.querySelectorAll('#escolar input,#escolar select,#escolar button'),function(n) {n.disabled=si;});
+}
+function guardarRegistroEscolar(estatus) {
+  if (escolarEstado.ocupado) return;
+  if (!escolarMismoContexto(escolarEstado.contexto,escolarContexto())) {escolarMensaje('Consulte la unidad y el mes antes de guardar.');return;}
+  var p=paqueteEscolar(estatus);bloquearEscolar(true);escolarMensaje('Guardando…');
+  google.script.run.withSuccessHandler(function(r) {
+    bloquearEscolar(false);consultarEscolar();
+  }).withFailureHandler(function(e) {bloquearEscolar(false);escolarMensaje(e.message+' Se conserva lo escrito.');}).guardarEscolar(p);
+}
+function descargarPreventivo(tipo) {
+  if (escolarEstado.ocupado) return;
+  var p=escolarContexto();p.tipo=tipo;bloquearEscolar(true);escolarMensaje('Preparando Excel…');
+  google.script.run.withSuccessHandler(function(r) {
+    bloquearEscolar(false);
+    var bin=atob(r.base64),bytes=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    var url=URL.createObjectURL(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    var a=document.createElement('a');a.href=url;a.download=r.nombre;document.body.appendChild(a);a.click();a.remove();setTimeout(function() {URL.revokeObjectURL(url);},10000);
+    escolarMensaje('Excel de revisión descargado. Verifique los datos pendientes.');
+  }).withFailureHandler(function(e) {bloquearEscolar(false);escolarMensaje(e.message);}).exportarPreventivo(p);
+}
+function iniciarEscolar() {
+  var temas=document.getElementById('escolarTemas');
+  Object.keys(ETIQUETAS_ESCOLAR).forEach(function(k) {var l=document.createElement('label');l.htmlFor='temaEscolar'+k;l.textContent=ETIQUETAS_ESCOLAR[k];var n=document.createElement('input');n.id=l.htmlFor;n.type='number';n.min='0';n.step='1';n.inputMode='numeric';temas.appendChild(l);temas.appendChild(n);});
+  document.getElementById('btnEscolar').onclick=abrirEscolar;
+  document.getElementById('escolarConsultar').onclick=consultarEscolar;
+  document.getElementById('escolarNuevo').onclick=nuevoEscolar;
+  document.getElementById('escolarConocido').onchange=function() {if(this.value!=='')cargarRegistroEscolar(escolarEstado.planteles[Number(this.value)]);};
+  ['Alumnos','Docentes','Padres'].forEach(function(k) {document.getElementById('escolar'+k).oninput=escolarTotal;});
+  document.getElementById('escolarFormulario').addEventListener('input',function() {escolarEstado.sucio=true;});
+  document.getElementById('escolarFormulario').onsubmit=function(e) {e.preventDefault();guardarRegistroEscolar('ENVIADO');};
+  document.getElementById('escolarBorrador').onclick=function() {guardarRegistroEscolar('BORRADOR');};
+  document.getElementById('escolarExcel').onclick=function() {descargarPreventivo('ESCOLAR');};
+  document.getElementById('adiccionesExcel').onclick=function() {descargarPreventivo('ADICCIONES');};
+  document.getElementById('deteccionesExcel').onclick=function() {descargarPreventivo('DETECCIONES');};
+  document.getElementById('escolarVolver').onclick=function() {document.getElementById('escolar').classList.add('oculto');document.querySelector('.progreso').classList.remove('oculto');document.querySelector('.barra').classList.remove('oculto');pintarProgreso();};
 }
 
 
@@ -2422,3 +2536,4 @@ window.addEventListener("beforeunload", function(ev){
 
 estadoRed();
 iniciar();
+iniciarEscolar();

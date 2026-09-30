@@ -12,7 +12,9 @@ var ACCIONES_API = {
   contextoComo: function (p) { return contextoComo(p.boleto, p.usuario, p.omitirSondas === true); },
   estados: function (p) { return estadosDeBoleto(p.boleto, p.usuario); },
   tablero: function (p) { return tablero(p.boleto); },
-  tableroFila: function (p) { return tableroFila(p.boleto, p.usuario); }
+  tableroFila: function (p) { return tableroFila(p.boleto, p.usuario); },
+  seguimiento: function (p) { return seguimientoPreventivo(p); },
+  atenderPreventivo: function (p) { return atenderPreventivo(p); }
 };
 
 function _json(objeto) {

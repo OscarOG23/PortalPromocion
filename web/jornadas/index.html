@@ -9,7 +9,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <link rel="icon" type="image/png" href="logo-promocion.png">
 <title>Captura de Jornadas · JS XIX</title>
-<link rel="stylesheet" href="estilos.css?v=20260929717e88">
+<link rel="stylesheet" href="estilos.css?v=20260930e099c9">
 </head>
 <body class="jornada-ui">
 
@@ -20,6 +20,7 @@
   <h1>Reporte de jornada</h1>
   <p>Jurisdicción Sanitaria No. XIX Texcoco · PROMSAM</p>
   <p class="sub">Al cierre de la jornada, cada módulo reporta su productividad y su evidencia.</p>
+  <button type="button" class="b-sec" id="btnEscolar">Trabajo preventivo en escuelas</button>
   <p class="insignia" id="insigniaRed" aria-live="polite"></p>
 </header>
 
@@ -39,6 +40,45 @@
     Sin conexión. Lo que captures se guarda en el teléfono y se envía solo al recuperar señal.
   </div>
   <div id="avisoCola" class="aviso a-info oculto" role="status" aria-live="polite"></div>
+
+  <section id="escolar" class="card oculto" aria-labelledby="tituloEscolar">
+  <h2 id="tituloEscolar">Trabajo preventivo en escuelas</h2>
+  <p class="mini">Concentrado mensual por plantel y turno. Cada sesión corresponde a un taller con su lista.
+    Las cifras complementan el reporte escolar y se conservan para revisión con Determinantes.</p>
+  <div id="escolarMensaje" class="aviso a-info" role="status" aria-live="polite"></div>
+  <label for="escolarUnidad">Unidad responsable</label><select id="escolarUnidad"></select>
+  <label for="escolarPeriodo">Periodo de actividad</label><input id="escolarPeriodo" type="month" required>
+  <button type="button" class="b-sec" id="escolarConsultar">Consultar periodo</button>
+  <h3>Planteles del periodo</h3><div id="escolarRegistros"></div>
+  <button type="button" class="b-sec" id="escolarNuevo">+ Agregar escuela</button>
+  <form id="escolarFormulario">
+    <label for="escolarConocido">Usar un plantel registrado</label><select id="escolarConocido"><option value="">Plantel nuevo…</option></select>
+    <label for="escolarCCT">Clave de centro de trabajo (CCT)</label><input id="escolarCCT" maxlength="10" required autocomplete="off">
+    <label for="escolarNombre">Nombre del plantel</label><input id="escolarNombre" maxlength="250" required>
+    <label for="escolarTurno">Turno</label><select id="escolarTurno"><option value="">Seleccione…</option><option>MATUTINO</option><option>VESPERTINO</option><option>NOCTURNO</option><option>DISCONTINUO</option><option>CONTINUO</option></select>
+    <label for="escolarCiclo">Ciclo escolar</label><input id="escolarCiclo" placeholder="2026-2027" required pattern="20[0-9]{2}-20[0-9]{2}">
+    <label for="escolarMatricula">Matrícula del plantel en este ciclo</label><input id="escolarMatricula" type="number" min="0" step="1" inputmode="numeric">
+    <label for="escolarProgramadas">Sesiones programadas para este mes <span class="opcional">(si cuenta con la meta)</span></label><input id="escolarProgramadas" type="number" min="0" step="1" inputmode="numeric">
+    <label for="escolarRealizadas">Sesiones realizadas</label><input id="escolarRealizadas" type="number" min="0" step="1" inputmode="numeric">
+    <h3>Sesiones en las que se impartió cada tema</h3>
+    <p class="mini">Una sesión puede abordar varios temas. Escriba 0 si confirmó que no se impartió; deje vacío un dato pendiente.</p>
+    <div id="escolarTemas"></div>
+    <label for="escolarOtros">Especifique otros temas <span class="opcional">(cuando corresponda)</span></label><input id="escolarOtros" maxlength="250">
+    <h3>Asistencias por público</h3><p class="mini">Son participaciones del mes. La matrícula se conserva como dato del plantel.</p>
+    <label for="escolarAlumnos">Alumnos</label><input id="escolarAlumnos" type="number" min="0" step="1" inputmode="numeric">
+    <label for="escolarDocentes">Docentes</label><input id="escolarDocentes" type="number" min="0" step="1" inputmode="numeric">
+    <label for="escolarPadres">Madres, padres o tutores</label><input id="escolarPadres" type="number" min="0" step="1" inputmode="numeric">
+    <p id="escolarAsistencias" role="status"></p>
+    <label for="escolarTamizajes">Tamizajes <span class="opcional">(si dispone del dato escolar confirmado)</span></label><input id="escolarTamizajes" type="number" min="0" step="1" inputmode="numeric">
+    <label for="escolarFolio">Folio de jornada de salud vinculada <span class="opcional">(si hubo una jornada registrada)</span></label><input id="escolarFolio" placeholder="JOR-…" maxlength="100">
+    <p class="mini">La jornada vinculada conserva sus fotos y su productividad. Este complemento no crea otra jornada ni vuelve a sumar sus servicios.</p>
+    <div class="fila-btn"><button id="escolarBorrador" type="button" class="b-sec">Guardar borrador</button><button id="escolarEnviar" type="submit" class="b-prim">Guardar reporte del plantel</button></div>
+  </form>
+  <h3>Descargar reportes del periodo</h3>
+  <p class="mini">Excel para revisión. Las cifras faltantes aparecen como pendientes. La descarga utiliza la unidad y el mes consultados.</p>
+  <div class="fila-btn"><button type="button" class="b-sec" id="escolarExcel">Escolar</button><button type="button" class="b-sec" id="adiccionesExcel">Adicciones</button><button type="button" class="b-sec" id="deteccionesExcel">Detecciones por recurso</button></div>
+  <button type="button" class="b-sec" id="escolarVolver">Volver a Jornadas</button>
+</section>
 
   <!-- ====================== PASO 1 ====================== -->
   <section class="card" id="p1">
@@ -138,7 +178,7 @@
   </div>
 </div>
 
-<script src="config.js?v=20260929717e88"></script>
-<script src="app.js?v=20260929717e88"></script>
+<script src="config.js?v=20260930e099c9"></script>
+<script src="app.js?v=20260930e099c9"></script>
 </body>
 </html>

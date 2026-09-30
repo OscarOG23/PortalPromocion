@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+  <meta name="theme-color" content="#9f2241">
+  <title>Seguimiento preventivo · Promoción de la Salud</title>
+  <link rel="icon" type="image/png" href="../logo-promocion.png">
+  <link rel="stylesheet" href="estilos.css?v=20260930">
+  <script src="../config.js" defer></script>
+  <script src="app.js?v=20260930" defer></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Ir a los indicadores</a>
+  <header class="cabecera">
+    <div class="cabecera-interior">
+      <a class="marca" href="../"><img src="../logo-promocion-blanco.png" width="28" height="31" alt="">Promoción de la Salud</a>
+      <a class="volver" href="../">Volver al portal</a>
+    </div>
+  </header>
+  <main>
+    <div class="introduccion">
+      <p class="sobre">ISEM · Jurisdicción Sanitaria XIX Texcoco</p>
+      <h1>Seguimiento preventivo</h1>
+      <p class="descripcion">Revise la actividad, las metas y los faltantes de sus unidades; registre la atención de cada pendiente.</p>
+      <p id="identidad" class="identidad"></p>
+    </div>
+    <section id="acceso-requerido" class="panel acceso" hidden aria-labelledby="titulo-acceso">
+      <h2 id="titulo-acceso">Inicie sesión para consultar sus unidades</h2>
+      <p>Use su acceso de Promoción de la Salud para abrir el seguimiento.</p>
+      <a href="../" class="boton">Iniciar sesión en el portal</a>
+    </section>
+    <section id="consulta" class="panel filtros" hidden aria-label="Filtros del seguimiento">
+      <div class="campo"><label for="periodo">Mes de seguimiento</label><input id="periodo" type="month" required></div>
+      <div class="campo"><label for="unidad">Unidad</label><select id="unidad"><option value="">Todas mis unidades</option></select></div>
+      <div class="campo"><label for="programa">Programa</label><select id="programa"><option value="">Todos los programas</option></select></div>
+      <button id="actualizar" type="button" class="boton">Actualizar consulta</button>
+    </section>
+    <p id="aviso" class="aviso" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+    <div id="contenido" hidden>
+      <section class="resumen" aria-label="Resumen de la vista">
+        <article class="tarjeta"><span id="resumen-indicadores" class="numero">0</span><h2>Indicadores en la vista</h2><p>Con sus propias unidades de medida</p></article>
+        <article class="tarjeta"><span id="resumen-evaluables" class="numero">0</span><h2>Con avance evaluable</h2><p>Porcentaje calculado por la fuente</p></article>
+        <article class="tarjeta tarjeta-alerta"><span id="resumen-pendientes" class="numero">0</span><h2>Pendientes por atender</h2><p>Abiertos o en proceso</p></article>
+        <article class="tarjeta"><span id="resumen-unidades" class="numero">0</span><h2>Unidades en la vista</h2><p>Con indicadores o pendientes</p></article>
+      </section>
+      <section class="panel seccion" aria-labelledby="titulo-indicadores">
+        <div class="titulo-seccion"><div><p class="sobre">Actividad y cumplimiento</p><h2 id="titulo-indicadores">Avance, metas y faltantes</h2></div><span id="periodo-vista" class="etiqueta-periodo"></span></div>
+        <p class="ayuda">La programación operativa y la meta oficial se presentan por separado. “Sin dato” no equivale a cero. Los porcentajes y faltantes corresponden a cada indicador; las actividades en revisión conservan su estado.</p>
+        <table id="indicadores"><caption class="solo-lectores">Indicadores del periodo y filtros seleccionados</caption><thead><tr><th scope="col">Unidad / programa</th><th scope="col">Indicador</th><th scope="col">Actividad</th><th scope="col">Programación</th><th scope="col">Meta oficial</th><th scope="col">Avance</th><th scope="col">Faltante</th><th scope="col">Estado</th><th scope="col">Fuente / corte</th></tr></thead><tbody></tbody></table>
+        <p id="sin-indicadores" class="vacio" hidden>No hay indicadores para los filtros seleccionados.</p>
+      </section>
+      <section class="panel seccion" aria-labelledby="titulo-pendientes">
+        <div class="titulo-seccion"><div><p class="sobre">Acciones de seguimiento</p><h2 id="titulo-pendientes">Atención de pendientes</h2></div><span id="cantidad-pendientes" class="etiqueta-periodo"></span></div>
+        <p class="ayuda">Registre quién atenderá el pendiente y el compromiso. Marcarlo como atendido no cambia ni valida las cifras: las correcciones se realizan en la fuente original.</p>
+        <div id="pendientes" class="pendientes"></div>
+        <p id="sin-pendientes" class="vacio" hidden>No hay pendientes para los filtros seleccionados.</p>
+      </section>
+      <section class="panel seccion" aria-labelledby="titulo-fuentes">
+        <div class="titulo-seccion"><div><p class="sobre">Procedencia y calidad</p><h2 id="titulo-fuentes">Fuentes de la consulta</h2></div></div>
+        <p class="ayuda">Cortes disponibles para el mes y la unidad consultados. El filtro de programa se aplica a indicadores y pendientes.</p>
+        <table id="fuentes"><caption class="solo-lectores">Fuentes consultadas y sus cortes</caption><thead><tr><th scope="col">Fuente</th><th scope="col">Corte</th><th scope="col">Estado</th><th scope="col">Detalle</th></tr></thead><tbody></tbody></table>
+        <p id="sin-fuentes" class="vacio" hidden>No hay información de fuentes para esta consulta.</p>
+      </section>
+    </div>
+    <footer>Instituto de Salud del Estado de México · Seguimiento con las capturas existentes</footer>
+  </main>
+</body>
+</html>
