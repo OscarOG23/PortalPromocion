@@ -55,6 +55,8 @@ function guardarComo(usuario) {
 
 var MINUTOS_REFRESCO = 60;
 var ultimaCarga = 0;
+var generacionContexto = 0;
+var contextoEnCurso = null;
 
 function el(id) { return document.getElementById(id); }
 
@@ -76,11 +78,31 @@ function llamar(accion, datos, esperaMs) {
   var reloj = setTimeout(function () { control.abort(); }, esperaMs || 20000);
   return fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                            body: JSON.stringify(cuerpo), signal: control.signal })
-    .then(function (r) { return r.json(); })
+    .then(function (r) { if (!r.ok) throw new Error('HTTP'); return r.json(); })
+    .then(function (r) { if (!r || typeof r.ok !== 'boolean') throw new Error('Respuesta inválida'); return r; })
     .catch(function () {
       return { ok: false, code: 'SIN_CONEXION', message: 'No se pudo conectar. Revise su internet e intente de nuevo.' };
     })
     .finally(function () { clearTimeout(reloj); });
+}
+
+// Solo lecturas de avances. Si otro dispositivo ya está consultando, se
+// espera su resultado con pausas crecientes y un límite de reintentos.
+var ESPERAS_AVANCE_MS = [5000, 10000, 20000, 30000, 30000, 30000];
+function llamarAvance(accion, datos, vigente, intento) {
+  intento = intento || 0;
+  if (!vigente()) return Promise.resolve(null);
+  return llamar(accion, datos, 150000).then(function (r) {
+    if (!vigente()) return null;
+    if (r.ok && r.consultando && intento < ESPERAS_AVANCE_MS.length) {
+      return new Promise(function (resolver) {
+        setTimeout(function () {
+          resolver(llamarAvance(accion, datos, vigente, intento + 1));
+        }, ESPERAS_AVANCE_MS[intento]);
+      });
+    }
+    return r;
+  });
 }
 
 // --- Piezas de interfaz -------------------------------------------------------
@@ -279,8 +301,10 @@ function cargarFilas(t, boleto, gen) {
       if (terminadas === t.filas.length) terminarTablero(t);
       return;
     }
-    llamar('tableroFila', { boleto: boleto, usuario: usuario }, 150000).then(function (r) {
-      if (gen !== generacionTablero) return;
+    llamarAvance('tableroFila', { boleto: boleto, usuario: usuario }, function () {
+      return gen === generacionTablero && leerBoleto() === boleto;
+    }).then(function (r) {
+      if (!r || gen !== generacionTablero) return;
       terminadas++;
       pintarFila(usuario, r.ok ? r : null, t.columnas);
       notaAvance();
@@ -415,6 +439,7 @@ function pintarResumen(destinos) {
 
 function renglon(d, i) {
   var li = nodo('li', 'destino');
+  li.dataset.destino = d.destino_id;
   li.style.setProperty('--i', i);
 
   // Defensa en profundidad: aunque el servidor ya filtra, aquí no se arma un
@@ -477,9 +502,14 @@ function cargarContexto() {
   if (!boleto) { mostrarAcceso(''); return; }
   var entrandoAlPortal = el('portal').hidden;
   var como = verComo;
-  var peticion = como ? llamar('contextoComo', { boleto: boleto, usuario: como })
-                      : llamar('contexto', { boleto: boleto });
+  if (contextoEnCurso && contextoEnCurso.boleto === boleto && contextoEnCurso.como === como) return;
+  var gen = ++generacionContexto;
+  contextoEnCurso = { boleto: boleto, como: como };
+  var peticion = como ? llamar('contextoComo', { boleto: boleto, usuario: como, omitirSondas: true })
+                      : llamar('contexto', { boleto: boleto, omitirSondas: true });
   peticion.then(function (r) {
+    if (gen !== generacionContexto) return;
+    contextoEnCurso = null;
     // El usuario pudo haber salido (o cambiado de boleto) mientras la
     // llamada estaba en el aire: una respuesta vieja no debe pisar la nueva.
     if (leerBoleto() !== boleto || verComo !== como) return;
@@ -501,6 +531,7 @@ function cargarContexto() {
         // página): un refresco periódico con el portal ya abierto no debe
         // robarle el foco a quien está leyendo.
         if (entrandoAlPortal) el('identidad').focus();
+        if (r.estadosPendientes && r.destinos.length) cargarEstados(r, boleto, como, gen);
       } catch (e) {
         mostrarAcceso('Algo salió mal. Intente de nuevo.');
       }
@@ -522,6 +553,31 @@ function cargarContexto() {
   });
 }
 
+function cargarEstados(ctx, boleto, como, gen) {
+  mostrarAvisoPortal('Actualizando avances. Ya puede abrir los capturadores.');
+  llamarAvance('estados', { boleto: boleto, usuario: como || '' }, function () {
+    return gen === generacionContexto && leerBoleto() === boleto && verComo === como;
+  }).then(function (r) {
+    if (!r || gen !== generacionContexto || leerBoleto() !== boleto || verComo !== como) return;
+    if (!r.ok || !r.estados || !r.periodo || String(r.periodo.anio) !== String(ctx.periodo.anio) ||
+        String(r.periodo.mes) !== String(ctx.periodo.mes)) {
+      mostrarAvisoPortal('No se pudo actualizar el avance. Puede seguir usando los capturadores.');
+      return;
+    }
+    ctx.destinos.forEach(function (d) { d.estado = r.estados[d.destino_id] || 'NO_SE_SABE'; });
+    Array.prototype.forEach.call(el('apartados').querySelectorAll('.destino'), function (fila) {
+      var d = ctx.destinos.filter(function (x) { return x.destino_id === fila.dataset.destino; })[0];
+      var indicador = fila.querySelector('.estado');
+      if (!d || !indicador) return;
+      var codigo = codigoDeEstado(d);
+      indicador.className = 'estado estado-' + codigo;
+      indicador.replaceChildren(icono(ICONOS_ESTADO[codigo]), document.createTextNode(ETIQUETAS_ESTADO[codigo]));
+    });
+    pintarResumen(ctx.destinos);
+    mostrarAvisoPortal(r.consultando ? 'Los avances siguen consultándose. Puede usar los capturadores y actualizar más tarde.' : '');
+  });
+}
+
 // --- Acceso -------------------------------------------------------------------
 
 function ocupado(boton, si) {
@@ -532,6 +588,7 @@ function ocupado(boton, si) {
 
 el('form-acceso').addEventListener('submit', function (ev) {
   ev.preventDefault();
+  if (el('btn-entrar').disabled) return;
   var usuario = el('usuario').value.trim();
   var contrasena = el('contrasena').value;
   if (!usuario || !contrasena) {
@@ -579,6 +636,9 @@ el('btn-volver-admin').addEventListener('click', function () {
 });
 
 el('btn-salir').addEventListener('click', function () {
+  generacionContexto++;
+  generacionTablero++;
+  contextoEnCurso = null;
   guardarComo('');
   tableroCargado = false;
   guardarBoleto(null);

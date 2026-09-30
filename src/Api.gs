@@ -8,8 +8,9 @@
 
 var ACCIONES_API = {
   iniciarSesion: function (p) { return iniciarSesion(p.usuario, p.contrasena); },
-  contexto: function (p) { return contextoDeBoleto(p.boleto); },
-  contextoComo: function (p) { return contextoComo(p.boleto, p.usuario); },
+  contexto: function (p) { return contextoDeBoleto(p.boleto, p.omitirSondas === true); },
+  contextoComo: function (p) { return contextoComo(p.boleto, p.usuario, p.omitirSondas === true); },
+  estados: function (p) { return estadosDeBoleto(p.boleto, p.usuario); },
   tablero: function (p) { return tablero(p.boleto); },
   tableroFila: function (p) { return tableroFila(p.boleto, p.usuario); }
 };
@@ -55,16 +56,16 @@ function despachar(peticion, acciones) {
 // Cada hermano recibe su propio boleto, de 8 horas y marcado con su
 // destino_id. El de 30 días del portal nunca sale de aquí: el de un destino
 // viaja en una URL y se queda en historiales.
-function contextoDeBoleto(boleto) {
+function contextoDeBoleto(boleto, omitirSondas) {
   var cuenta = usuarioDeBoleto(boleto);
   if (!cuenta.ok) return cuenta;
   if (esAdmin(cuenta.usuario)) return contextoDeAdmin_(cuenta.usuario);
-  return contextoDeCuenta_(cuenta.usuario);
+  return contextoDeCuenta_(cuenta.usuario, omitirSondas);
 }
 
 // El portal de una cuenta (coordinación o persona). `u` = _cuentaPublica.
 // También lo usa "ver como" del admin: los boletos salen a nombre de `u`.
-function contextoDeCuenta_(u) {
+function contextoDeCuenta_(u, omitirSondas) {
   // En USUARIOS, `nombre` es el nombre de la coordinación (lo pone así
   // crearCuentasDeCoordinaciones()) o, en una cuenta de persona, el de ella.
   var coordinacion = { coordinacion_id: u.coordinacion_id, nombre: u.nombre, usuario: u.usuario };
@@ -77,7 +78,7 @@ function contextoDeCuenta_(u) {
   var rol = rolDeCuenta(u);
   var filas = destinosDeCuenta(leerCatalogo(HOJAS.DESTINOS),
                                { rol: rol, coordinacion_id: u.coordinacion_id });
-  var nativos = consultarSondasNativas_(filas, u, anio, mes, secreto);
+  var nativos = omitirSondas ? {} : consultarSondasNativas_(filas, u, anio, mes, secreto);
 
   var destinos = filas.map(function (d) {
       var id = String(d.destino_id).trim();
@@ -89,7 +90,7 @@ function contextoDeCuenta_(u) {
         apartado: d.apartado || '',
         clase: d.clase,
         enlace: enlaceDeDestino(d, coordinacion, boletoDestino),
-        estado: String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA
+        estado: omitirSondas ? ESTADOS.NO_SE_SABE : String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA
           ? (nativos[id] || ESTADOS.NO_SE_SABE) : estadoDeDestino(d, coordinacion, anio, mes)
       };
     });
@@ -98,5 +99,31 @@ function contextoDeCuenta_(u) {
     : nombreDeUnidadPorId(leerCatalogo(HOJAS.UNIDADES), u.unidad_id);
   return { ok: true, usuario: { nombre: u.nombre, coordinacion_id: u.coordinacion_id, rol: rol,
                                 unidad: unidad },
-           periodo: { anio: anio, mes: mes }, destinos: destinos };
+           periodo: { anio: anio, mes: mes }, destinos: destinos, estadosPendientes: !!omitirSondas };
+}
+
+// La captura puede comenzar mientras las sondas resuelven en otra petición.
+// Se vuelven a validar sesión y permisos; nunca se acepta una cuenta del cliente.
+function estadosDeBoleto(boleto, usuarioObjetivo) {
+  var cuenta = usuarioDeBoleto(boleto);
+  if (!cuenta.ok) return cuenta;
+  var u = cuenta.usuario;
+  if (usuarioObjetivo) {
+    if (!esAdmin(u)) return { ok: false, code: 'NO_AUTORIZADO', message: 'Esta cuenta no puede ver como otra.' };
+    var r = cuentaParaVerComo(leerCatalogo(HOJAS.USUARIOS), u, usuarioObjetivo);
+    if (!r.ok) return r;
+    u = _cuentaPublica(r.fila);
+  }
+  var anio = getConfig('anio_activo'), mes = getConfig('mes_activo');
+  var filas = destinosDeCuenta(leerCatalogo(HOJAS.DESTINOS), u);
+  var progreso = {};
+  var nativos = consultarSondasNativas_(filas, u, anio, mes, secretoDeBoletos(), progreso);
+  var estados = {};
+  var coordinacion = { coordinacion_id: u.coordinacion_id, nombre: u.nombre, usuario: u.usuario };
+  filas.forEach(function (d) {
+    var id = String(d.destino_id).trim();
+    estados[id] = String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA
+      ? (nativos[id] || ESTADOS.NO_SE_SABE) : estadoDeDestino(d, coordinacion, anio, mes);
+  });
+  return { ok: true, periodo: { anio: anio, mes: mes }, estados: estados, consultando: !!progreso.enCurso };
 }

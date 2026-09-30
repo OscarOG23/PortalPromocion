@@ -218,7 +218,7 @@ $('btn-reintentar-entrada').addEventListener('click', iniciar);
 $('btn-reintentar-lista').addEventListener('click', cargarMes);
 
 // ---------------------------------------------------------------- Lista
-function cargarMes() {
+function cargarMes(abrirUnica) {
   var n = ++S.pedido;
   S.estado = null;
   mostrar('vista-lista');
@@ -232,6 +232,7 @@ function cargarMes() {
     if (!r || !r.ok) return errorLista((r && r.msg) || 'Algo falló. Intente de nuevo.');
     S.estado = r;
     pintarLista();
+    if (abrirUnica !== false && !r.cerrado && (r.unidades || []).length === 1) abrirUnidad(r.unidades[0]);
   }, function () { if (n === S.pedido) errorLista(MSG_RED); });
 }
 
@@ -426,16 +427,22 @@ $('form-unidad').addEventListener('submit', function (ev) {
   var c = leerFormulario();
   if (!c) return;
   var u = S.unidad, btn = $('btn-guardar');
+  var valoresEnviados = JSON.stringify(entradas().map(function (inp) { return inp.value; }));
   ocupar(btn, true); pintarAcciones();
   llamar('guardarUnidad', [S.token, S.anio, S.mes, u.unidad_id, c]).then(function (r) {
     ocupar(btn, false); pintarAcciones();
     if (sinSesion(r)) return;
     if (!r || !r.ok) return falla('error-unidad', r, function () { $('btn-guardar').click(); });
-    u.valores = c; u.capturada = true; S.sucio = false;
+    u.valores = c; u.capturada = true;
+    S.sucio = valoresEnviados !== JSON.stringify(entradas().map(function (inp) { return inp.value; }));
     if (S.unidad !== u) return;
     $('unidad-mes').textContent = mesTitulo(S.anio, S.mes) + ' · capturada';
     btn.querySelector('span:last-child').textContent = 'Guardar cambios';
     pintarResultado(r.alertas || []);
+    if (S.sucio) {
+      $('resultado').textContent = 'Se guardó la versión enviada. Hay cambios nuevos sin guardar.';
+      $('btn-listo').hidden = true;
+    }
     pintarAcciones();
     pintarFotos();
   }, function () {
@@ -460,11 +467,18 @@ function pintarResultado(alertas) {
 function volver() {
   if (S.subiendo || S.ocupado) return;
   if (S.sucio && !S.estado.cerrado && !window.confirm('Hay cambios sin guardar. ¿Salir sin guardar?')) return;
-  S.unidad = null; S.cola = []; S.verGen++;
-  cargarMes();
+  S.unidad = null; S.sucio = false; S.cola = []; S.verGen++;
+  cargarMes(false);
 }
 $('btn-volver').addEventListener('click', volver);
 $('btn-listo').addEventListener('click', volver);
+
+window.addEventListener('beforeunload', function (ev) {
+  if (S.sucio || S.ocupado || S.subiendo || S.cola.length) {
+    ev.preventDefault();
+    ev.returnValue = '';
+  }
+});
 
 $('btn-borrar').addEventListener('click', function () {
   var u = S.unidad;

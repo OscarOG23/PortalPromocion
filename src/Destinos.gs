@@ -274,24 +274,29 @@ function interpretarRespuestaSonda(codigoHttp, texto) {
 
 var VIDA_BOLETO_SONDA_MIN = 5;
 var CACHE_SONDA_SEG = 600;
+var CACHE_SONDA_FALLO_SEG = 30;
+var SONDA_EN_CURSO_SEG = 360;
 
 // Pregunta a todos los hermanos NATIVA a la vez (fetchAll) y guarda en caché
 // 10 minutos cada respuesta clara. Devuelve { destino_id: estado }; lo que no
 // conteste claro queda NO_SE_SABE. Cualquier falla general: todos gris.
 // cuenta: ver "Boletos por cuenta".
-function consultarSondasNativas_(destinos, cuenta, anio, mes, secreto) {
-  return consultarSondasDeCuentas_([{ cuenta: cuenta, destinos: destinos }], anio, mes, secreto)[0];
+function consultarSondasNativas_(destinos, cuenta, anio, mes, secreto, progreso) {
+  return consultarSondasDeCuentas_([{ cuenta: cuenta, destinos: destinos }], anio, mes, secreto, progreso)[0];
 }
 
 // Lo mismo para varias cuentas a la vez (el tablero del admin): todas las
 // sondas que no están en caché salen en UN solo fetchAll. Devuelve un mapa
 // { destino_id: estado } por cada par, en el mismo orden.
-function consultarSondasDeCuentas_(pares, anio, mes, secreto) {
+function consultarSondasDeCuentas_(pares, anio, mes, secreto, progreso) {
   var resultados = pares.map(function () { return {}; });
+  var pendientes = [], cache, propietario;
+  progreso = progreso || {};
+  progreso.enCurso = false;
   try {
-    var cache = CacheService.getScriptCache();
+    cache = CacheService.getScriptCache();
     var vence = Date.now() + VIDA_BOLETO_SONDA_MIN * 60000;
-    var pendientes = [];
+    var candidatas = [];
     pares.forEach(function (par, k) {
       par.destinos.filter(function (d) {
         return String(d.sonda || '').trim().toUpperCase() === SONDA_NATIVA && !problemasDeDestino(d).length;
@@ -300,10 +305,27 @@ function consultarSondasDeCuentas_(pares, anio, mes, secreto) {
         var clave = claveDeSonda(id, par.cuenta, anio, mes);
         var guardado = cache.get(clave);
         if (guardado) { resultados[k][id] = guardado; return; }
-        var boleto = boletoDeSonda(par.cuenta, id, vence, secreto);
-        pendientes.push({ k: k, id: id, clave: clave, url: urlDeSonda(d, boleto, anio, mes) });
+        candidatas.push({ k: k, id: id, clave: clave, destino: d, cuenta: par.cuenta });
       });
     });
+    if (!candidatas.length) return resultados;
+    // La reserva se comparte entre dispositivos. El candado dura solo para
+    // leer/escribir caché; NUNCA se conserva durante las llamadas remotas.
+    var lock = LockService.getScriptLock();
+    if (!lock.tryLock(100)) { progreso.enCurso = true; return resultados; }
+    try {
+      propietario = Utilities.getUuid();
+      candidatas.forEach(function (p) {
+        var guardado = cache.get(p.clave);
+        if (guardado) { resultados[p.k][p.id] = guardado; return; }
+        p.reserva = 'en-curso:' + p.clave;
+        if (cache.get(p.reserva)) { progreso.enCurso = true; return; }
+        var boleto = boletoDeSonda(p.cuenta, p.id, vence, secreto);
+        p.url = urlDeSonda(p.destino, boleto, anio, mes);
+        cache.put(p.reserva, propietario, SONDA_EN_CURSO_SEG);
+        pendientes.push(p);
+      });
+    } finally { lock.releaseLock(); }
     if (!pendientes.length) return resultados;
     var respuestas = UrlFetchApp.fetchAll(pendientes.map(function (p) {
       return { url: p.url, muteHttpExceptions: true, followRedirects: true };
@@ -312,10 +334,23 @@ function consultarSondasDeCuentas_(pares, anio, mes, secreto) {
       var r = interpretarRespuestaSonda(resp.getResponseCode(), resp.getContentText());
       var estado = estadoDeSonda(r);
       resultados[pendientes[i].k][pendientes[i].id] = estado;
-      if (estado !== ESTADOS.NO_SE_SABE) cache.put(pendientes[i].clave, estado, CACHE_SONDA_SEG);
+      cache.put(pendientes[i].clave, estado,
+        estado === ESTADOS.NO_SE_SABE ? CACHE_SONDA_FALLO_SEG : CACHE_SONDA_SEG);
     });
   } catch (e) {
     console.error(e);
+    // Una caída no debe provocar una nueva ráfaga desde cada dispositivo.
+    pendientes.forEach(function (p) {
+      try {
+        if (!cache.get(p.clave)) cache.put(p.clave, ESTADOS.NO_SE_SABE, CACHE_SONDA_FALLO_SEG);
+      } catch (errorCache) { /* la consulta seguirá disponible sin caché */ }
+    });
+  } finally {
+    pendientes.forEach(function (p) {
+      try {
+        if (cache.get(p.reserva) === propietario) cache.remove(p.reserva);
+      } catch (errorCache) { /* la reserva caduca incluso si la ejecución se corta */ }
+    });
   }
   return resultados;
 }

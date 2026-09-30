@@ -10,7 +10,9 @@ function registrarEvento(usuario, accion, detalle) {
     throw new Error('ACCION_INVALIDA: "' + accion + '" no es una acción auditable.');
   }
   var lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) return 0;
+  // El ingreso no debe hacer fila varios segundos por un registro opcional.
+  // Las acciones administrativas conservan su ventana de escritura.
+  if (!lock.tryLock(accion === 'INGRESO' ? 100 : 5000)) return 0;
   try {
     return escribirFilas(HOJAS.AUDITORIA, [{ timestamp: new Date(), usuario: usuario,
                                               accion: accion, detalle: detalle || '' }]);

@@ -59,6 +59,13 @@ function llamarExec_(accion, args){
 /** Lo que el formulario pide por google.script.run, contestado desde el /exec. */
 function atenderPuente_(accion, args){
   if (ACCIONES_PUENTE.indexOf(accion) < 0) return Promise.reject(new Error("Acción no disponible: " + accion));
+  // Aquí args siempre es un arreglo; llamar(fn, arg) recibe un objeto suelto.
+  if (BOLETO_MEDICA){
+    if (accion === "datosAltaMedica") args = [BOLETO_MEDICA];
+    if (accion === "altaJornadaMedica" && args[0]){
+      args = [Object.assign({}, args[0], { boleto: BOLETO_MEDICA })];
+    }
+  }
   return llamarExec_(accion, args);
 }
 
@@ -78,19 +85,9 @@ function crearRunnerPuente_(exito, fallo){
 }
 
 /* Sólo en el navegador: en las pruebas de Node no hay location. */
+var BOLETO_MEDICA = null;
 if (typeof window !== "undefined" && typeof location !== "undefined"){
-  var BOLETO_MEDICA = leerBoletoMedica_();
-  if (BOLETO_MEDICA){
-    var llamadaOriginal = llamar;
-    llamar = function(accion, args){
-      var datos = args && args[0];
-      if (accion === "datosAltaMedica") return llamadaOriginal(accion, BOLETO_MEDICA);
-      if (accion === "altaJornadaMedica" && datos && typeof datos === "object"){
-        datos.boleto = BOLETO_MEDICA;
-      }
-      return llamadaOriginal(accion, args);
-    };
-  }
+  BOLETO_MEDICA = leerBoletoMedica_();
   window.google = { script: { run: crearRunnerPuente_(null, null) } };
 }
 
@@ -450,8 +447,8 @@ var Guardado = {
     catch(e){ return _mem[k] || null; }
   },
   escribir: function(k, v){
-    try { window.localStorage.setItem(k, JSON.stringify(v)); }
-    catch(e){ _mem[k] = v; }
+    try { window.localStorage.setItem(k, JSON.stringify(v)); return true; }
+    catch(e){ _mem[k] = v; return false; }
   }
 };
 
@@ -578,7 +575,9 @@ function encolar(paquete){
   } else {
     cola.push(paquete);
   }
-  Guardado.escribir("cola", cola);
+  if (Guardado.escribir("cola", cola) === false){
+    throw new Error("No se pudo guardar en el teléfono. No cierre esta página; recupere la conexión e intente enviar de nuevo.");
+  }
   return cola.length;
 }
 
@@ -615,6 +614,8 @@ function pintarUnidades(){
     op.value = u.id; op.textContent = u.nombre + ' (' + u.municipio + ')';
     sel.appendChild(op);
   });
+  if (UNIDADES.length === 1) sel.value = UNIDADES[0].id;
+  unidadElegida();
 }
 
 function pintarModulos(){
@@ -699,6 +700,7 @@ document.getElementById('form').addEventListener('submit', function(ev){
 
 document.getElementById('btnOtra').addEventListener('click', function(){
   document.getElementById('form').reset();
+  if (UNIDADES.length === 1) document.getElementById('unidad').value = UNIDADES[0].id;
   document.getElementById('confirmacion').classList.add('oculto');
   document.getElementById('form').classList.remove('oculto');
   unidadElegida();

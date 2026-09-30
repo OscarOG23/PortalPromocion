@@ -661,16 +661,18 @@ function guardar(luego) {
       if (bloqueado(r)) return;
       return falla('error-guardar', r, function () { guardar(luego); });
     }
-    S.sucio = false; S.datos.existe = true; S.datos.informe = inf;
+    S.sucio = JSON.stringify(leerInforme()) !== JSON.stringify(inf);
+    S.datos.existe = true; S.datos.informe = inf;
     S.erroresServidor = r.errores || [];
     S.datos.alertas = r.alertas || [];
     pintarEstado();
     pintarAlertas(S.datos.alertas);
     $('guardado').appendChild(el('p', { class: 'aviso ok' }, [icono('i-listo'), el('span', {
-      text: (r.errores || []).length ? 'Borrador guardado. Todavía hay pendientes para poder enviarlo.'
+      text: S.sucio ? 'Se guardó la versión enviada. Hay cambios nuevos sin guardar.'
+            : (r.errores || []).length ? 'Borrador guardado. Todavía hay pendientes para poder enviarlo.'
                                      : 'Borrador guardado.' })]));
     revisarEnVivo();
-    if (luego) luego(r);
+    if (luego && !S.sucio) luego(r);
   }, function () {
     ocupar(btn, false);
     if (n === S.pedido) mostrarError('error-guardar', MSG_RED, function () { guardar(luego); });

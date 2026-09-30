@@ -99,13 +99,13 @@ function contextoDeAdmin_(u) {
            admin: opcionesVerComo(leerCatalogo(HOJAS.USUARIOS), leerCatalogo(HOJAS.UNIDADES)) };
 }
 
-function contextoComo(boleto, usuarioObjetivo) {
+function contextoComo(boleto, usuarioObjetivo, omitirSondas) {
   var admin = _adminDeBoleto(boleto);
   if (!admin.ok) return admin;
   var r = cuentaParaVerComo(leerCatalogo(HOJAS.USUARIOS), admin.usuario, usuarioObjetivo);
   if (!r.ok) return r;
   registrarEvento(admin.usuario.usuario, 'VER_COMO', r.fila.usuario);
-  var ctx = contextoDeCuenta_(_cuentaPublica(r.fila));
+  var ctx = contextoDeCuenta_(_cuentaPublica(r.fila), omitirSondas);
   ctx.verComo = { usuario: r.fila.usuario, admin: admin.usuario.nombre };
   return ctx;
 }
@@ -151,7 +151,8 @@ function tableroFila(boleto, usuario) {
   var anio = getConfig('anio_activo');
   var mes = getConfig('mes_activo');
   var destinos = _destinosDeCoordinacion_(leerCatalogo(HOJAS.DESTINOS), u);
-  var nativos = consultarSondasNativas_(destinos, u, anio, mes, secretoDeBoletos());
+  var progreso = {};
+  var nativos = consultarSondasNativas_(destinos, u, anio, mes, secretoDeBoletos(), progreso);
   var coordinacion = { coordinacion_id: u.coordinacion_id, nombre: u.nombre, usuario: u.usuario };
   var estados = {};
   destinos.forEach(function (d) {
@@ -161,5 +162,6 @@ function tableroFila(boleto, usuario) {
   });
   var fila = armarTablero([{ usuario: u.usuario, nombre: u.nombre, destinos: destinos, estados: estados }]).filas[0];
   fila.ok = true;
+  fila.consultando = !!progreso.enCurso;
   return fila;
 }

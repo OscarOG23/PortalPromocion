@@ -509,8 +509,8 @@ var Guardado = {
     catch(e){ return _mem[k] || null; }
   },
   escribir: function(k, v){
-    try { window.localStorage.setItem(k, JSON.stringify(v)); }
-    catch(e){ _mem[k] = v; }
+    try { window.localStorage.setItem(k, JSON.stringify(v)); return true; }
+    catch(e){ _mem[k] = v; return false; }
   }
 };
 
@@ -637,7 +637,9 @@ function encolar(paquete){
   } else {
     cola.push(paquete);
   }
-  Guardado.escribir("cola", cola);
+  if (Guardado.escribir("cola", cola) === false){
+    throw new Error("No se pudo guardar en el teléfono. No cierre esta página; recupere la conexión e intente enviar de nuevo.");
+  }
   return cola.length;
 }
 
@@ -1174,8 +1176,6 @@ function iniciar(){
     document.body.removeAttribute("aria-busy");
   });
 
-  sincronizarPref().then(function(p){ estado.pref = p; });
-
   aplicarModo(estado.modo);
   pintarProgreso();
   revisarCola();
@@ -1193,7 +1193,10 @@ function aplicarBootstrap(b, desdeCache){
   // migración (destinosTaller viejo, divisorOrientacionPF ausente). Usar el
   // objeto tal cual (hallazgo C-1, revisión de la Task 1) mandaba TALLERES en
   // 150 donde iban 413.
-  estado.pref = curarPref_(b.preferencias || {});
+  estado.pref = curarPref_((desdeCache && Guardado.leer("pref")) || b.preferencias || {});
+  // El arranque ya incluye las preferencias: evita otra llamada y una
+  // respuesta tardía que reemplace los ajustes elegidos durante la captura.
+  if (!desdeCache) Guardado.escribir("pref", estado.pref);
   // Un servidor o una caché de antes de la ficha no trae el bloque: se
   // captura igual, sin unidades y con todos los costos en aviso.
   estado.fichaDatos = {
@@ -1371,6 +1374,7 @@ function prepararNueva(){
   s.value = previo;
   if (s.value !== previo) s.value = "";
   if (!$("nuevaFecha").value) $("nuevaFecha").value = hoyIso_();
+  if (!s.value && estado.fichaDatos.unidades.length === 1) s.value = estado.fichaDatos.unidades[0].id;
 }
 
 $("nuevaUnidad").addEventListener("change", function(){
@@ -1677,6 +1681,10 @@ function construirBloqueFicha(){
   });
   sel.value = estado.ficha.unidadId;
   if (sel.value !== estado.ficha.unidadId) estado.ficha.unidadId = "";
+  if (!estado.ficha.unidadId && estado.fichaDatos.unidades.length === 1){
+    estado.ficha.unidadId = estado.fichaDatos.unidades[0].id;
+    sel.value = estado.ficha.unidadId;
+  }
   var coord = document.createElement("p");
   coord.className = "mini"; coord.id = "fichaCoordinacion";
   var pintarCoord = function(){
@@ -2324,8 +2332,25 @@ function enviar(){
 
   llamar(fn, p).then(function(){
     terminar("Captura enviada. Ya aparece en el concentrado.", false);
-  }).catch(function(){
-    encolar(p);
+  }).catch(function(error){
+    // AbortError de fetch tiene code numérico 20: sí es un fallo de red.
+    if (error && typeof error.code === "string" && error.code){
+      estado.enviando = false;
+      $("btnSiguiente").disabled = false;
+      $("btnSiguiente").textContent = "Enviar captura";
+      document.body.removeAttribute("aria-busy");
+      alerta(error.message || "No se pudo guardar. Revise los datos e intente de nuevo.", true);
+      return;
+    }
+    try { encolar(p); }
+    catch(errorGuardado){
+      estado.enviando = false;
+      $("btnSiguiente").disabled = false;
+      $("btnSiguiente").textContent = "Enviar captura";
+      document.body.removeAttribute("aria-busy");
+      alerta(errorGuardado.message, true);
+      return;
+    }
     terminar("Sin señal. Se guardó en el teléfono y se enviará solo.", true);
   });
 }
@@ -2388,6 +2413,12 @@ function estadoRed(){
 
 window.addEventListener("online", estadoRed);
 window.addEventListener("offline", estadoRed);
+window.addEventListener("beforeunload", function(ev){
+  if (estado.enviando || Object.keys(estado.datos).length || estado.fotos.length){
+    ev.preventDefault();
+    ev.returnValue = "";
+  }
+});
 
 estadoRed();
 iniciar();

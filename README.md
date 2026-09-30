@@ -50,6 +50,17 @@ curl -s "$L"
 
 `node tools/run-tests.js` (lógica pura). Lo que toca Sheets se verifica en el editor con `runAllTests()` y las funciones de `Setup.gs`.
 
+`node --test tools/runtime-tests.js tools/browser-tests.js tools/concurrency-tests.js` cubre carga progresiva, permisos,
+preselección de unidad y conservación de captura. Requiere Chrome o Edge (o `CHROME_PATH`);
+usa datos ficticios y red simulada, sin escribir en las hojas reales.
+
+La [revisión de carga y captura](docs/revision-carga-captura-2026-09-29.md) detalla
+las correcciones, mejoras pendientes y el orden de publicación. Las pantallas de Jornadas
+se regeneran desde `JORNADA SALUD/JS19-JORNADAS`; no editar sus archivos generados a mano.
+
+La [revisión de varios dispositivos](docs/revision-varios-dispositivos-2026-09-29.md)
+documenta reservas de sondas compartidas, pruebas de sesiones independientes y límites de la comprobación local.
+
 ## Riesgos aceptados, dichos de frente
 
 - **La contraseña es deducible** (`usuario` + `26`) por decisión explícita, y esta página es **pública**.
