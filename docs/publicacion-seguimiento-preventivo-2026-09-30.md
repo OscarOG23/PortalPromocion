@@ -27,6 +27,8 @@ Regenerar los denominadores con `tools/preparar_metas_preventivas.py` cuando cam
 
 Pruebas de lógica, permisos, cortes y atención; Chrome para filtros, móvil, errores, concurrencia y conservación de comentarios. Revisión independiente: se corrigieron puente ambiguo, reemplazo de cortes, historial y señales SINBA.
 
-Adicciones: versión 23, tabla de evidencia instalada. Jornadas: versión 18. Portal: propiedades de fuentes configuradas y salud pública HTTP 200. La función de diagnóstico del propietario queda fuera de la API pública.
+Adicciones: versión 23, tabla de evidencia instalada. Jornadas: versión 18. Portal: versión 12, propiedades de fuentes configuradas y salud pública HTTP 200. La función de diagnóstico del propietario queda fuera de la API pública.
+
+GitHub Pages publicó el commit 5331337 con éxito. La pantalla https://oscarog23.github.io/PortalPromocion/seguimiento/ se abrió y mostró el acceso protegido mediante el Portal. No se realizó ingreso con una cuenta ajena para simular la validación real.
 
 Google solicita consentimiento del propietario para los nuevos ámbitos de acceso del servidor: hojas de cálculo y lectura de Drive. La validación de lectura real de todas las fuentes depende de ese consentimiento; no se declara cierre de producción ni funcionamiento integral hasta completarlo.

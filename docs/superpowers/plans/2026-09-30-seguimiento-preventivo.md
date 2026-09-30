@@ -15,7 +15,7 @@ POST atenderPreventivo con boleto, periodo, unidad_id, pendiente_id, version, re
 - [x] Vista adaptable y acceso desde Portal con filtros, indicadores, fuentes y pendientes.
 - [x] Preparar/importar agregados privados y metas; configurar fuentes en servidores existentes.
 - [x] Revisar especificación y código; verificar pruebas de permisos y navegador con datos ficticios.
-- [ ] Publicar Apps Script y Pages y comprobar enlace real.
+- [x] Publicar Apps Script y Pages y comprobar enlace real. Pages ejecutado con éxito (commit 5331337); pantalla abierta en el navegador y servidor con HTTP 200.
 - [ ] Completar consentimiento OAuth del propietario y comprobar lectura real de todas las fuentes.
 
 Las metas oficiales se importan del evaluador con su puente CLUES revisado. Cuestionarios nominales no se dividen entre metas de detecciones por sustancia. Sin padrón de escuelas asignadas no hay porcentaje de cobertura. Las fuentes no se suman entre sí ni se atribuyen a personal cuando falta identidad.
