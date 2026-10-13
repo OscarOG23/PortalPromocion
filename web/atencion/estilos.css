@@ -63,6 +63,17 @@
   }
 }
 
+.guia-atencion {
+  margin-top: 20px; padding: 18px; border: 1px solid var(--borde);
+  border-radius: var(--r-lg); background: var(--superficie); line-height: 1.6;
+}
+.guia-atencion h2 { font-size: 1.1rem; }
+.guia-atencion p { margin-top: 10px; color: var(--texto-2); }
+.guia-atencion ol { padding-left: 22px; }
+.guia-atencion li { margin-bottom: 8px; }
+.guia-atencion summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+.guia-atencion a { display: inline-block; padding: 12px 0; color: var(--acento-texto); text-decoration: underline; }
+
 /* ---------------------------------------------------------------- Base ---- */
 
 *, *::before, *::after { box-sizing: border-box; }

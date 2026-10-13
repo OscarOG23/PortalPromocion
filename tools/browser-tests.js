@@ -46,6 +46,28 @@ function run(folder, setup, scenario) {
   }
 }
 
+test('portal: guías del personal al final de coordinación sin cambiar entregas ni compartir boleto',()=>run('', '', `
+  pintarPortal({usuario:{rol:'COORDINACION',nombre:'Coordinación prueba'},periodo:{anio:2026,mes:10},
+    destinos:[{destino_id:'mensual',nombre:'Mensual',enlace:'https://example.test/?boleto=privado',estado:'PENDIENTE'}]});
+  var guia=document.querySelector('#guias-personal');
+  check(guia && guia===document.querySelector('#apartados').lastElementChild,'Las guías deben aparecer al final');
+  var enlaces=guia.querySelectorAll('a');check(enlaces.length===3,'Faltan perfiles');
+  ['nutricion','psicologia','promotores'].forEach((id,i)=>check(enlaces[i].getAttribute('href')==='guia-personal/#'+id,'Enlace incorrecto o contiene credencial'));
+  check(document.querySelector('#resumen-total').textContent==='1','Las guías alteraron las obligaciones');
+`));
+
+for (const [rol,nombre] of [['NUTRICION','Nutrición'],['PSICOLOGIA','Psicología']]) {
+  test('portal: acceso reconocible y guía para '+nombre,()=>run('', '', `
+    pintarPortal({usuario:{rol:'${rol}',nombre:'Persona prueba'},periodo:{anio:2026,mes:10},
+      destinos:[{destino_id:'atencion',nombre:'Informe mensual de Atención',enlace:'https://example.test/?boleto=individual',estado:'PENDIENTE'}]});
+    var enlace=document.querySelector('.destino a');
+    check(enlace.textContent.includes('Informe mensual de ${nombre}'),'El nombre oculta la disciplina');
+    check(enlace.getAttribute('href')==='https://example.test/?boleto=individual','Se cambió el acceso autenticado');
+    check(document.querySelector('#orientacion-personal').textContent.includes('Atención'),'Falta explicar el registro existente');
+    check(!document.querySelector('#guias-personal'),'Se mostraron guías de coordinación a una persona');
+  `));
+}
+
 test('alta médica: boleto en el envío, unidad única y otra captura',()=>run('jornada-medica',`
   sessionStorage.setItem('jornadaMedica:boleto','boleto-ficticio');
   fetch=(url,opts)=>{var p=JSON.parse(opts.body);calls.push(p);return reply(p.accion==='datosAltaMedica'
@@ -87,6 +109,36 @@ test('actividad física: varias unidades, catálogo vacío y mes cerrado conserv
   fetch=()=>reply({ok:true,unidades:[{unidad_id:'U1',nombre:'Prueba',capturada:true,fotos:[]}],cerrado:true});
   cargarMes();await tick();check(!document.getElementById('vista-lista').hidden,'Mes cerrado abrió captura automáticamente');
 `));
+for (const [rol,nombre] of [['NUTRICION','Nutrición'],['PSICOLOGIA','Psicología']]) {
+  test('atención: guía y ciclo de borrador, envío y consulta de '+nombre,()=>run('atencion', `
+    sessionStorage.setItem('atencion:sesion',JSON.stringify({ses:{token:'prueba',nombre:'Persona prueba',rol:'${rol}',unidad:'Unidad prueba',porDefecto:{anio:2026,mes:10}}}));
+    var guardadoPrueba={},estadoPrueba='BORRADOR';
+    fetch=(url,opts)=>{var p=JSON.parse(opts.body);calls.push(p);
+      if(p.accion==='guardarInforme'){guardadoPrueba=p.args[3];return reply({ok:true});}
+      if(p.accion==='enviarInforme'){estadoPrueba='ENVIADO';return reply({ok:true});}
+      return reply({ok:true,estado:estadoPrueba,existe:true,informe:guardadoPrueba,evidencias:[]});};`, `
+    check(document.querySelector('#titulo-informe').textContent==='Informe mensual de ${nombre}','Falta título por disciplina');
+    check(document.querySelector('#guia-atencion').textContent.includes('Guardar borrador'),'Falta orientación');
+    check(entradas().every(i=>i.dataset.ruta.startsWith('${rol}'==='NUTRICION'?'nut.':'psi.')),'Aparecen campos de otra disciplina');
+    entradas().forEach(i=>{i.value=i.hasAttribute('data-numero')?'0':'';});S.sucio=true;revisarEnVivo();
+    check(document.querySelector('#btn-enviar').disabled,'Permite enviar sin evidencia');
+    document.querySelector('#form-informe').dispatchEvent(new Event('submit',{cancelable:true}));await tick();
+    check(calls.some(p=>p.accion==='guardarInforme' && p.args[3].rol==='${rol}'),'No guardó el perfil correcto');
+    check(S.datos.estado==='BORRADOR' && !S.sucio,'Guardar se confundió con enviar');
+    if('${rol}'==='PSICOLOGIA'){
+      document.querySelector('#c-psi-poblacion-hombres').value='1';revisarEnVivo();
+      check(validarCliente(leerInforme()).length>0,'No detecta descuadre');
+      document.querySelector('#c-psi-poblacion-hombres').value='0';
+    }
+    S.datos.evidencias=[{id:'e1',nombre:'Evidencia de prueba.pdf',tipo:'application/pdf'}];revisarEnVivo();
+    check(!document.querySelector('#btn-enviar').disabled,'No permite enviar informe completo');
+    window.confirm=()=>true;document.querySelector('#btn-enviar').click();await tick();
+    check(calls.filter(p=>p.accion==='enviarInforme').length===1,'Falta envío o se duplicó');
+    check(S.datos.estado==='ENVIADO' && entradas().every(i=>i.disabled),'No bloquea informe enviado');
+    cargarMes();await tick();check(S.datos.estado==='ENVIADO','La recarga perdió el estado');
+  `));
+}
+
 test('atención: editar durante guardado no envía una versión anterior',()=>run('atencion',`
   sessionStorage.setItem('atencion:sesion',JSON.stringify({ses:{token:'prueba',nombre:'Prueba',rol:'NUTRICION',unidad:'U1',porDefecto:{anio:2026,mes:9}}}));
   fetch=(url,opts)=>{var p=JSON.parse(opts.body);calls.push(p);

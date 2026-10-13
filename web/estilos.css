@@ -71,6 +71,25 @@
   }
 }
 
+.orientacion-personal {
+  margin: 20px 0; padding: 20px; border: 1px solid var(--borde);
+  border-radius: var(--r-lg); background: var(--superficie); line-height: 1.6;
+}
+.orientacion-personal h2 { font-size: 1.15rem; color: var(--texto); }
+.orientacion-personal p { margin-top: 10px; color: var(--texto-2); }
+.enlace-guia { display: inline-block; padding: 12px 0; color: var(--acento-texto); text-decoration: underline; }
+.lista-guias { list-style: none; padding: 0; margin: 12px 0 0; }
+.lista-guias li + li { border-top: 1px solid var(--borde); margin-top: 12px; padding-top: 8px; }
+.lista-guias li p { margin-top: 0; }
+.guia-personal main { max-width: 48rem; padding-top: 24px; }
+.guia-personal h1 { font-size: 1.8rem; }
+.guia-personal h3 { font-size: 1rem; margin-bottom: 8px; }
+.guia-personal section { scroll-margin-top: 20px; }
+.guia-personal li { margin-bottom: 8px; }
+.guia-personal .pasos { padding-left: 24px; }
+.guia-personal nav { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.guia-personal section > .enlace-guia { display: block; width: fit-content; }
+
 /* ---------------------------------------------------------------- Base ---- */
 
 *, *::before, *::after { box-sizing: border-box; }

@@ -23,6 +23,47 @@ var DETALLES_CLASE = {
 
 // Cuentas de persona (fase 7): la cabecera dice su disciplina y su unidad.
 var DISCIPLINAS = { NUTRICION: 'Nutrición', PSICOLOGIA: 'Psicología', PROMOTOR: 'Promoción' };
+var GUIAS_PERSONAL = [
+  { rol: 'NUTRICION', id: 'nutricion', nombre: 'Nutrición', descripcion: 'Consultas, orientaciones alimentarias, box lunch y evidencias en Atención.' },
+  { rol: 'PSICOLOGIA', id: 'psicologia', nombre: 'Psicología', descripcion: 'Consultas, sesiones grupales, población, material informativo y evidencias en Atención.' },
+  { rol: 'PROMOTOR', id: 'promotores', nombre: 'Promotores de salud', descripcion: 'Productividad mensual del promotor en SSOP.' }
+];
+
+function enlaceGuia(perfil, texto) {
+  var a = nodo('a', 'enlace-guia', texto);
+  a.href = 'guia-personal/#' + perfil.id;
+  return a;
+}
+
+function orientacionPersonal(rol) {
+  var perfil = GUIAS_PERSONAL.filter(function (p) { return p.rol === rol; })[0];
+  if (!perfil) return null;
+  var caja = nodo('section', 'orientacion-personal');
+  caja.id = 'orientacion-personal';
+  caja.appendChild(nodo('h2', '', 'Su registro de ' + perfil.nombre));
+  caja.appendChild(nodo('p', '', perfil.descripcion));
+  caja.appendChild(nodo('p', '', rol === 'PROMOTOR'
+    ? 'Abra el acceso SSOP de abajo con su cuenta individual. Revise el periodo antes de capturar.'
+    : 'Este es su Informe mensual de Atención, identificado con su disciplina. Revise el mes, capture las cifras, agregue evidencias y envíe. Guardar borrador todavía no cuenta como entrega.'));
+  caja.appendChild(enlaceGuia(perfil, 'Guía para ' + perfil.nombre + ': qué reportar y cómo entrar'));
+  return caja;
+}
+
+function guiasDePersonal() {
+  var caja = nodo('section', 'apartado orientacion-personal');
+  caja.id = 'guias-personal';
+  caja.appendChild(nodo('h2', '', 'Qué reporta el personal'));
+  caja.appendChild(nodo('p', '', 'Guías para orientar a Nutrición, Psicología y Promotores. Cada persona captura desde su cuenta individual. Estos enlaces explican los registros; no muestran sus entregas ni se suman a los pendientes de la coordinación.'));
+  var lista = nodo('ul', 'lista-guias');
+  GUIAS_PERSONAL.forEach(function (perfil) {
+    var li = nodo('li');
+    li.appendChild(enlaceGuia(perfil, perfil.nombre + ' — qué reporta y cómo ingresar'));
+    li.appendChild(nodo('p', '', perfil.descripcion));
+    lista.appendChild(li);
+  });
+  caja.appendChild(lista);
+  return caja;
+}
 
 // Qué dice la cabecera y el aviso sin destinos. Una coordinación (o una
 // respuesta sin rol, de antes de la fase 7) se ve igual que siempre.
@@ -193,6 +234,9 @@ function pintarPortal(ctx) {
   }
 
   pintarResumen(ctx.destinos);
+  var rol = String(ctx.usuario.rol || 'COORDINACION').toUpperCase();
+  var orientacion = orientacionPersonal(rol);
+  if (orientacion) contenedor.appendChild(orientacion);
   var grupos = {};
   var orden = [];
   ctx.destinos.forEach(function (d) {
@@ -205,12 +249,13 @@ function pintarPortal(ctx) {
   orden.forEach(function (clave) {
     var seccion = nodo('section', 'apartado');
     var lista = nodo('ul', 'destinos');
-    grupos[clave].forEach(function (d) { lista.appendChild(renglon(d, i++)); });
+    grupos[clave].forEach(function (d) { lista.appendChild(renglon(d, i++, rol)); });
     seccion.appendChild(nodo('h2', '', clave));
     seccion.appendChild(lista);
     contenedor.appendChild(seccion);
   });
 
+  if (rol === 'COORDINACION') contenedor.appendChild(guiasDePersonal());
   el('sin-destinos').hidden = ctx.destinos.length > 0;
   mostrar('portal');
 }
@@ -437,7 +482,7 @@ function pintarResumen(destinos) {
   resumen.hidden = false;
 }
 
-function renglon(d, i) {
+function renglon(d, i, rol) {
   var li = nodo('li', 'destino');
   li.dataset.destino = d.destino_id;
   li.style.setProperty('--i', i);
@@ -460,7 +505,9 @@ function renglon(d, i) {
   tile.appendChild(icono(aspecto[0]));
 
   var cuerpo = nodo('span', 'cuerpo');
-  var nombre = nodo('span', 'nombre', d.nombre + (tieneEnlace ? '' : ' — No disponible'));
+  var titulo = d.destino_id === 'atencion' && (rol === 'NUTRICION' || rol === 'PSICOLOGIA')
+    ? 'Informe mensual de ' + DISCIPLINAS[rol] : d.nombre;
+  var nombre = nodo('span', 'nombre', titulo + (tieneEnlace ? '' : ' — No disponible'));
 
   var codigo = codigoDeEstado(d);
   var estado = nodo('span', 'estado estado-' + codigo);

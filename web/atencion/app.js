@@ -241,6 +241,13 @@ function arrancar(ses) {
   S.token = ses.token; S.rol = ses.rol;
   S.anio = Number(ses.porDefecto.anio); S.mes = Number(ses.porDefecto.mes);
   $('persona').textContent = ses.nombre || '';
+  var disciplina = ses.rol === 'NUTRICION' ? 'Nutrición' : 'Psicología';
+  document.title = 'Informe mensual de ' + disciplina + ' — Atención';
+  if ($('titulo-informe')) $('titulo-informe').textContent = 'Informe mensual de ' + disciplina;
+  if ($('descripcion-disciplina')) $('descripcion-disciplina').textContent = ses.rol === 'NUTRICION'
+    ? 'Nutrición: registre consultas, orientaciones alimentarias y box lunch, con sus evidencias.'
+    : 'Psicología: registre consultas, sesiones por tema, población y material informativo, con sus evidencias.';
+  if ($('enlace-guia-atencion')) $('enlace-guia-atencion').href = '../guia-personal/#' + (ses.rol === 'NUTRICION' ? 'nutricion' : 'psicologia');
   $('disciplina').textContent = (ses.rol === 'NUTRICION' ? 'Nutrición' : 'Psicología') +
                                 (ses.unidad ? ' · ' + ses.unidad : '');
   armarModulo(ses.rol);
