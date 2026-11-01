@@ -72,7 +72,7 @@ function datosSeguimiento_(identidad,periodo){
   return construirSeguimientoPreventivo({periodo:periodo,unidades:unidades,determinantes:det,evidencias:ev,escolar:escolar,metas:metas,avances_oficiales:avances,fuentes:fuentes,disponibilidad:disponibilidad});
 }
 function hojaAtencionPreventiva_(){
-  var ss=SpreadsheetApp.getActive(),sh=ss.getSheetByName('ATENCION_PREVENTIVA');
+  var ss=baseDePortal_(),sh=ss.getSheetByName('ATENCION_PREVENTIVA');
   if(!sh){sh=ss.insertSheet('ATENCION_PREVENTIVA');sh.getRange(1,1,1,COLUMNAS_ATENCION_PREVENTIVA.length).setValues([COLUMNAS_ATENCION_PREVENTIVA]);sh.setFrozenRows(1);}
   return sh;
 }

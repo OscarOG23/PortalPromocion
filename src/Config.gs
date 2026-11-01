@@ -46,6 +46,32 @@ function getConfig(clave) {
   return null;
 }
 
+// Mismo criterio que Determinantes (Periodos.gs): desde el día `diaApertura`
+// (22 por omisión) ya cuenta el mes en curso; antes, el anterior. CONFIG
+// (anio_activo / mes_activo) puede adelantar el mes, nunca atrasarlo.
+var DIA_APERTURA_POR_OMISION = 22;
+
+function periodoVigente(fecha, diaApertura, anioConfig, mesConfig) {
+  var dia = parseInt(diaApertura, 10);
+  if (!(dia >= 1 && dia <= 28)) dia = DIA_APERTURA_POR_OMISION;
+  var anio = fecha.getFullYear();
+  var mes = fecha.getMonth() + 1;
+  if (fecha.getDate() < dia) {
+    mes -= 1;
+    if (mes === 0) { mes = 12; anio -= 1; }
+  }
+  var a = parseInt(anioConfig, 10), m = parseInt(mesConfig, 10);
+  if (a > 0 && m >= 1 && m <= 12 && a * 100 + m > anio * 100 + mes) {
+    anio = a; mes = m;
+  }
+  return { anio: anio, mes: mes };
+}
+
+function periodoActual() {
+  return periodoVigente(new Date(), getConfig('dia_apertura'),
+                        getConfig('anio_activo'), getConfig('mes_activo'));
+}
+
 // El secreto no vive en la hoja: quien pueda leer la hoja no debe poder
 // fabricar boletos. Se crea con generarSecretoDeBoletos() (Setup.gs).
 function secretoDeBoletos() {

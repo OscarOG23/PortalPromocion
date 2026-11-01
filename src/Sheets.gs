@@ -1,5 +1,20 @@
+// La API no tiene el contexto de documento activo del editor. Abrir la misma
+// base explícitamente también permite leerla cuando vence la caché del catálogo.
+// El ID vive en Propiedades del Script: este repositorio es público.
+function baseDePortal_() {
+  var id = PropertiesService.getScriptProperties().getProperty('ID_BASE_PORTAL');
+  if (!id) throw new Error('SIN_BASE: falta ID_BASE_PORTAL en las propiedades del script.');
+  return SpreadsheetApp.openById(id);
+}
+
+// Se corre una vez con clasp run; no es una acción de la API.
+function guardarIdBaseDePortal(id) {
+  PropertiesService.getScriptProperties().setProperty('ID_BASE_PORTAL', id);
+  return 'ID_BASE_PORTAL guardado';
+}
+
 function _hoja(nombre) {
-  return SpreadsheetApp.getActive().getSheetByName(nombre);
+  return baseDePortal_().getSheetByName(nombre);
 }
 
 function leerTabla(nombre) {

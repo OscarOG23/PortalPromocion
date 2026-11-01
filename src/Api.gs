@@ -71,8 +71,9 @@ function contextoDeCuenta_(u, omitirSondas) {
   // En USUARIOS, `nombre` es el nombre de la coordinación (lo pone así
   // crearCuentasDeCoordinaciones()) o, en una cuenta de persona, el de ella.
   var coordinacion = { coordinacion_id: u.coordinacion_id, nombre: u.nombre, usuario: u.usuario };
-  var anio = getConfig('anio_activo');
-  var mes = getConfig('mes_activo');
+  var periodo = periodoActual();
+  var anio = periodo.anio;
+  var mes = periodo.mes;
   var secreto = secretoDeBoletos();
   var vence = Date.now() + VIDA_BOLETO_DESTINO_HORAS * 3600000;
 
@@ -116,7 +117,7 @@ function estadosDeBoleto(boleto, usuarioObjetivo) {
     if (!r.ok) return r;
     u = _cuentaPublica(r.fila);
   }
-  var anio = getConfig('anio_activo'), mes = getConfig('mes_activo');
+  var periodo = periodoActual(), anio = periodo.anio, mes = periodo.mes;
   var filas = destinosDeCuenta(leerCatalogo(HOJAS.DESTINOS), u);
   var progreso = {};
   var nativos = consultarSondasNativas_(filas, u, anio, mes, secretoDeBoletos(), progreso);

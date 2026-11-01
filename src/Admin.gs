@@ -94,7 +94,7 @@ function _adminDeBoleto(boleto) {
 function contextoDeAdmin_(u) {
   return { ok: true,
            usuario: { nombre: u.nombre, coordinacion_id: u.coordinacion_id, rol: ROLES.ADMIN, unidad: '' },
-           periodo: { anio: getConfig('anio_activo'), mes: getConfig('mes_activo') },
+           periodo: periodoActual(),
            destinos: [],
            admin: opcionesVerComo(leerCatalogo(HOJAS.USUARIOS), leerCatalogo(HOJAS.UNIDADES)) };
 }
@@ -136,7 +136,7 @@ function tablero(boleto) {
     return { usuario: u.usuario, nombre: u.nombre, destinos: _destinosDeCoordinacion_(destinos, u), estados: {} };
   }));
   t.ok = true;
-  t.periodo = { anio: getConfig('anio_activo'), mes: getConfig('mes_activo') };
+  t.periodo = periodoActual();
   return t;
 }
 
@@ -148,8 +148,9 @@ function tableroFila(boleto, usuario) {
     return c.usuario === String(usuario || '').trim().toLowerCase();
   })[0];
   if (!u) return { ok: false, code: 'CUENTA_NO_DISPONIBLE', message: 'Esa coordinación no existe o está dada de baja.' };
-  var anio = getConfig('anio_activo');
-  var mes = getConfig('mes_activo');
+  var periodo = periodoActual();
+  var anio = periodo.anio;
+  var mes = periodo.mes;
   var destinos = _destinosDeCoordinacion_(leerCatalogo(HOJAS.DESTINOS), u);
   var progreso = {};
   var nativos = consultarSondasNativas_(destinos, u, anio, mes, secretoDeBoletos(), progreso);
